@@ -10,17 +10,17 @@ function httpError(message, statusCode) {
 }
 
 async function registerVehicle(ownerId, data) {
-  const { plateNumber, vehicleType } = data;
+  const { plateNumber, vehicleType, fuelType = 'PETROL' } = data;
   
   const existing = await repo.findByPlateNumber(plateNumber);
   if (existing) {
     throw httpError('Plate number already registered to a vehicle.', 409);
   }
 
-  const randomString = crypto.randomBytes(4).toString('hex').toUpperCase();
-  const vid = `VID-${randomString}`;
+  // Generate a random 6-digit number as a string
+  const vid = crypto.randomInt(100000, 999999).toString();
 
-  return await repo.createVehicle({ vid, plateNumber, ownerId, vehicleType });
+  return await repo.createVehicle({ vid, plateNumber, ownerId, vehicleType, fuelType });
 }
 
 async function getVehicleById(vehicleId, user) {

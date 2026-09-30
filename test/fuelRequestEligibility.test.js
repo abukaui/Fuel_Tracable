@@ -68,19 +68,38 @@ async function seedQuotaPolicy(vehicleType, dailyLimitLiters, setBy) {
   `, [vehicleType, dailyLimitLiters, setBy]);
 }
 
-// Simulate a previously USED fuel request to exhaust part of the quota
-async function seedUsedFuelRequest(vehicleId, stationId, liters) {
-  await testPool.query(`
-    INSERT INTO fuel_requests (vehicle_id, station_id, requested_liters, otp_code_hash, status, expires_at)
-    VALUES ($1, $2, $3, 'hash', 'USED', now() + interval '30 minutes')
+// Simulate already-dispensed liters to exhaust part of the quota.
+// Day 11 fix: now inserts a real dispense_transactions row (joined through
+// a USED fuel_request) so the quota check exercises the correct code path.
+async function seedDispensedLiters(vehicleId, stationId, operatorId, liters) {
+  const { rows: frRows } = await testPool.query(`
+    INSERT INTO fuel_requests
+      (vehicle_id, station_id, requested_liters, otp_code_hash, status, expires_at)
+    VALUES ($1, $2, $3, 'test-hash', 'USED', now() + interval '30 minutes')
+    RETURNING id
   `, [vehicleId, stationId, liters]);
+  const fuelRequestId = frRows[0].id;
+
+  await testPool.query(`
+    INSERT INTO dispense_transactions
+      (fuel_request_id, verified_by, liters_dispensed, plate_verified)
+    VALUES ($1, $2, $3, true)
+  `, [fuelRequestId, operatorId, liters]);
 }
 
 // ── Cleanup ───────────────────────────────────────────────────────────────────
 
 async function cleanup(vehicleId, stationId, userId) {
-  if (vehicleId) await testPool.query('DELETE FROM fuel_requests WHERE vehicle_id = $1', [vehicleId]);
-  if (vehicleId) await testPool.query('DELETE FROM vehicles WHERE id = $1', [vehicleId]);
+  if (vehicleId) {
+    // dispense_transactions → fuel_requests → vehicles (must delete in order)
+    await testPool.query(`
+      DELETE FROM dispense_transactions
+      WHERE fuel_request_id IN (
+        SELECT id FROM fuel_requests WHERE vehicle_id = $1
+      )`, [vehicleId]);
+    await testPool.query('DELETE FROM fuel_requests WHERE vehicle_id = $1', [vehicleId]);
+    await testPool.query('DELETE FROM vehicles WHERE id = $1', [vehicleId]);
+  }
   if (stationId) await testPool.query('DELETE FROM stations WHERE id = $1', [stationId]);
   if (userId)    await testPool.query('DELETE FROM users WHERE id = $1', [userId]);
 }
@@ -144,8 +163,8 @@ describe('Fuel Request Eligibility Logic', () => {
       const vehicleId = await seedVehicle(userId, 'PRIVATE');
       await seedQuotaPolicy('PRIVATE', 50, adminId);
 
-      // Simulate 30L already used today
-      await seedUsedFuelRequest(vehicleId, stationId, 30);
+      // Simulate 30L already dispensed today (real dispense_transactions row)
+      await seedDispensedLiters(vehicleId, stationId, adminId, 30);
 
       // Try to request 30L more (30 + 30 = 60 > 50 limit)
       let caught;

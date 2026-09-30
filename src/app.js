@@ -9,6 +9,8 @@ const app = express();
 
 // ── Global middleware ─────────────────────────────────────────────────────────
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +26,8 @@ app.use('/api/reconciliations', require('./modules/reconciliation/reconciliation
 app.use('/api/vehicles', require('./modules/vehicles/vehicles.routes'));
 app.use('/api/quota-policies', require('./modules/quota-policies/quota-policies.routes'));
 app.use('/api/fuel-requests', require('./modules/fuel-requests/fuel-requests.routes'));
+app.use('/api/dispense', require('./modules/dispense/dispense.routes'));
+app.use('/api/ussd', require('./modules/ussd/ussd.routes'));
 
 // ── Global error handler ──────────────────────────────────────────────────────
 // Must be defined AFTER all routes (4-argument signature is required by Express).
@@ -37,7 +41,9 @@ app.use((err, _req, res, _next) => {
     console.error('[error]', err);
   }
 
-  res.status(status).json({ error: message });
+  const body = { error: message };
+  if (err.code) body.code = err.code;
+  res.status(status).json(body);
 });
 
 module.exports = app;

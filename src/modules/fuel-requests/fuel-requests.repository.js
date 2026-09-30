@@ -19,16 +19,22 @@ async function findById(id) {
 }
 
 async function getUsedLitersToday(vehicleId) {
+  // ── Day 11 fix ────────────────────────────────────────────────────────────
+  // Previously (Day 9 approximation) this summed fuel_requests.requested_liters
+  // WHERE status='USED'. Now that dispense_transactions exists we sum the
+  // actual liters_dispensed so the quota reflects what was physically dispensed,
+  // not just what was requested.
   const query = `
-    SELECT COALESCE(SUM(requested_liters), 0) AS total
-    FROM fuel_requests
-    WHERE vehicle_id = $1
-      AND status = 'USED'
-      AND created_at >= NOW() - INTERVAL '24 hours';
+    SELECT COALESCE(SUM(dt.liters_dispensed), 0) AS total
+    FROM dispense_transactions dt
+    JOIN fuel_requests fr ON fr.id = dt.fuel_request_id
+    WHERE fr.vehicle_id = $1
+      AND dt.occurred_at >= NOW() - INTERVAL '24 hours';
   `;
   const result = await pool.query(query, [vehicleId]);
   return parseFloat(result.rows[0].total) || 0;
 }
+
 
 // Helper to fetch vehicle and policy
 async function getVehicleWithPolicy(vehicleId) {

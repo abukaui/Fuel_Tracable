@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>USSD Mock</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; max-width: 600px; margin: 0 auto; }
+    #phone-screen {
+      background-color: #222;
+      color: #0f0;
+      padding: 1rem;
+      border-radius: 8px;
+      min-height: 200px;
+      white-space: pre-wrap;
+      margin-bottom: 1rem;
+      font-family: monospace;
+    }
+    input, button { padding: 0.5rem; font-size: 1rem; }
+    .controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .meta { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-direction: column; }
+  </style>
+</head>
+<body>
+  <h1>USSD Test Harness</h1>
+  
+  <div class="meta">
+    <label>Phone Number: <input type="text" id="phone" value="+10001234567"></label>
+    <label>Session ID: <input type="text" id="sessionId" value="" readonly></label>
+  </div>
+
+  <div id="phone-screen">Welcome. Click "Start Session" to begin.</div>
+
+  <div class="controls">
+    <input type="text" id="input-text" placeholder="Enter option (e.g. 1)">
+    <button id="btn-send">Send</button>
+    <button id="btn-start">Start / Reset Session</button>
+  </div>
+
+  <script>
+    let currentText = '';
+
+    function generateSessionId() {
+      return 'SESSION-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+    }
+
+    async function sendUssd(textToSend) {
+      const phone = document.getElementById('phone').value;
+      const sessionId = document.getElementById('sessionId').value;
+      const screen = document.getElementById('phone-screen');
+      const input = document.getElementById('input-text');
+
+      try {
+        const res = await fetch('/api/ussd/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            phoneNumber: phone,
+            text: textToSend
+          })
+        });
+        const responseText = await res.text();
+        
+        // Render the response
+        if (responseText.startsWith('CON ')) {
+          screen.textContent = responseText.substring(4);
+        } else if (responseText.startsWith('END ')) {
+          screen.textContent = responseText.substring(4) + '\n\n[Session Ended]';
+          document.getElementById('sessionId').value = ''; // Clear session
+        } else {
+          screen.textContent = "Error: Invalid response format from server.\n" + responseText;
+        }
+      } catch (err) {
+        screen.textContent = "Network Error: " + err.message;
+      }
+      input.value = '';
+      input.focus();
+    }
+
+    document.getElementById('btn-start').addEventListener('click', () => {
+      document.getElementById('sessionId').value = generateSessionId();
+      currentText = '';
+      sendUssd(currentText);
+    });
+
+    document.getElementById('btn-send').addEventListener('click', () => {
+      const val = document.getElementById('input-text').value.trim();
+      const sessionId = document.getElementById('sessionId').value;
+      
+      if (!sessionId) {
+        alert("Please start a session first.");
+        return;
+      }
+
+      if (currentText === '') {
+        currentText = val;
+      } else {
+        currentText += '*' + val;
+      }
+      sendUssd(currentText);
+    });
+
+    // Enter to send
+    document.getElementById('input-text').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-send').click();
+      }
+    });
+
+    // Auto-start on load
+    document.getElementById('btn-start').click();
+  </script>
+</body>
+</html>

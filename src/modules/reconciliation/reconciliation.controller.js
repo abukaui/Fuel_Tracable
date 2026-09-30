@@ -1,6 +1,33 @@
 'use strict';
 
 const service = require('./reconciliation.service');
+const config  = require('../../config');
+
+// Default lookback for on-demand run = same interval as scheduled job (in minutes)
+function defaultLookbackMinutes() {
+  // Parse */30 → 30; for more complex crons fall back to 30
+  const cron = config.reconciliationIntervalCron;
+  const m = cron.match(/^\*\/(\d+)\s/);
+  return m ? parseInt(m[1], 10) : 30;
+}
+
+async function runReconciliation(req, res, next) {
+  try {
+    const stationId = req.params.id;
+    const lookback  = req.query.lookbackMinutes
+      ? parseInt(req.query.lookbackMinutes, 10)
+      : defaultLookbackMinutes();
+
+    if (isNaN(lookback) || lookback <= 0) {
+      return res.status(400).json({ error: 'lookbackMinutes must be a positive integer.' });
+    }
+
+    const row = await service.runOnDemand(stationId, lookback);
+    return res.status(201).json({ reconciliation: row });
+  } catch (err) {
+    next(err);
+  }
+}
 
 async function getStationReconciliations(req, res, next) {
   try {
@@ -23,6 +50,7 @@ async function getReconciliationById(req, res, next) {
 }
 
 module.exports = {
+  runReconciliation,
   getStationReconciliations,
   getReconciliationById,
 };

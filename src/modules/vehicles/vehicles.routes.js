@@ -12,7 +12,8 @@ const router = express.Router();
 const registerSchema = z.object({
   body: z.object({
     plateNumber: z.string().min(1, "plateNumber is required"),
-    vehicleType: z.enum(['PRIVATE', 'TAXI', 'COMMERCIAL'])
+    vehicleType: z.enum(['PRIVATE', 'TAXI', 'COMMERCIAL']),
+    fuelType: z.enum(['PETROL', 'DIESEL']).default('PETROL')
   })
 });
 

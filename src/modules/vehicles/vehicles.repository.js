@@ -2,13 +2,13 @@
 
 const pool = require('../../db/pool');
 
-async function createVehicle({ vid, plateNumber, ownerId, vehicleType }) {
+async function createVehicle({ vid, plateNumber, ownerId, vehicleType, fuelType }) {
   const query = `
-    INSERT INTO vehicles (vid, plate_number, owner_id, vehicle_type)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO vehicles (vid, plate_number, owner_id, vehicle_type, fuel_type)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING *;
   `;
-  const result = await pool.query(query, [vid, plateNumber, ownerId, vehicleType]);
+  const result = await pool.query(query, [vid, plateNumber, ownerId, vehicleType, fuelType]);
   return result.rows[0];
 }
 

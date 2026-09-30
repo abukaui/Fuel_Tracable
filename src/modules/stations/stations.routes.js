@@ -50,4 +50,11 @@ router.get('/:id/status-history', controller.getStatusHistory);
 // 7. GET /api/stations/:id/reconciliations — any authenticated role
 router.get('/:id/reconciliations', require('../reconciliation/reconciliation.controller').getStationReconciliations);
 
+// 8. POST /api/stations/:id/reconciliations/run — GOV_REGULATOR or ADMIN only
+router.post(
+  '/:id/reconciliations/run',
+  authorize('GOV_REGULATOR', 'ADMIN'),
+  require('../reconciliation/reconciliation.controller').runReconciliation
+);
+
 module.exports = router;
