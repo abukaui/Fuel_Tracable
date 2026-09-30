@@ -21,6 +21,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/stations', stationRoutes);
 app.use('/api/tanks', atgRoutes);
 app.use('/api/reconciliations', require('./modules/reconciliation/reconciliation.routes'));
+app.use('/api/vehicles', require('./modules/vehicles/vehicles.routes'));
+app.use('/api/quota-policies', require('./modules/quota-policies/quota-policies.routes'));
+app.use('/api/fuel-requests', require('./modules/fuel-requests/fuel-requests.routes'));
 
 // ── Global error handler ──────────────────────────────────────────────────────
 // Must be defined AFTER all routes (4-argument signature is required by Express).

@@ -32,7 +32,7 @@ async function login(req, res, next) {
     }
 
     const result = await service.login({ phone, password });
-    return res.json(result);
+    return res.json({result});
   } catch (err) {
     next(err);
   }

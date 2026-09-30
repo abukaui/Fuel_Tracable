@@ -46,6 +46,35 @@ async function createTank(stationId, data) {
   return tank;
 }
 
+/**
+ * evaluateStockOutFlag
+ *
+ * Pure detection logic, extracted for testability.
+ * Given a list of tank objects (each with an `id`), inspects the latest ATG
+ * reading for each. Returns { shouldFlag: true } if ANY tank has a reading
+ * ABOVE config.stockOutMinThresholdLiters while the station claims OUT_OF_STOCK
+ * — indicating a potential false stock-out / black-market diversion.
+ *
+ * Tanks with NO readings are skipped (ambiguous — not enough data to flag).
+ *
+ * @param {string} stationId   (used only for logging)
+ * @param {Array<{id: string}>} tanks
+ * @returns {Promise<{ shouldFlag: boolean }>}
+ */
+async function evaluateStockOutFlag(stationId, tanks) {
+  for (const tank of tanks) {
+    const latestReading = await atgRepo.findLatestReadingByTankId(tank.id);
+    if (!latestReading) {
+      console.log(`[Reconciliation] Tank ${tank.id} has no readings yet. Skipping.`);
+      continue;
+    }
+    if (parseFloat(latestReading.volume_liters) > config.stockOutMinThresholdLiters) {
+      return { shouldFlag: true };
+    }
+  }
+  return { shouldFlag: false };
+}
+
 async function updateStatus(id, { status }) {
   const station = await repo.findStationById(id);
   if (!station) {
@@ -55,27 +84,15 @@ async function updateStatus(id, { status }) {
 
   if (status === 'OUT_OF_STOCK') {
     const tanks = await repo.findTanksByStationId(id);
-    let falseFlag = false;
+    const { shouldFlag } = await evaluateStockOutFlag(id, tanks);
 
-    for (const tank of tanks) {
-      const latestReading = await atgRepo.findLatestReadingByTankId(tank.id);
-      if (!latestReading) {
-        console.log(`[Reconciliation] Tank ${tank.id} has no readings yet. Skipping.`);
-        continue;
-      }
-      if (parseFloat(latestReading.volume_liters) > config.stockOutMinThresholdLiters) {
-        falseFlag = true;
-        break;
-      }
-    }
-
-    if (falseFlag) {
+    if (shouldFlag) {
       await reconRepo.createReconciliation({
         stationId: id,
         periodStart: new Date(),
         periodEnd: new Date(),
         stockOutFlag: true,
-        status: 'FLAGGED'
+        status: 'FLAGGED',
       });
     }
   }
@@ -101,4 +118,5 @@ module.exports = {
   createTank,
   updateStatus,
   getStatusHistory,
+  evaluateStockOutFlag, // exported for testing
 };
