@@ -1,34 +1,40 @@
 'use strict';
 
-const authRepo = require('../auth/auth.repository');
-const vehiclesRepo = require('../vehicles/vehicles.repository');
-const vehiclesService = require('../vehicles/vehicles.service');
+const authRepo           = require('../auth/auth.repository');
+const vehiclesService    = require('../vehicles/vehicles.service');
 const fuelRequestsService = require('../fuel-requests/fuel-requests.service');
-const fuelRequestsRepo = require('../fuel-requests/fuel-requests.repository');
-const pool = require('../../db/pool');
+const fuelRequestsRepo   = require('../fuel-requests/fuel-requests.repository');
+const stationsService    = require('../stations/stations.service');   // Day 6/7 reuse
+const dispenseService    = require('../dispense/dispense.service');   // Day 11 reuse
+const pool               = require('../../db/pool');
 
 /**
  * Handle USSD callback
- * Returning a string prefixed with 'CON ' means continue session, 'END ' means end it.
+ * Returns a string prefixed with 'CON ' (session continues) or 'END ' (session over).
+ * Routing is purely by role — no second endpoint needed.
  */
 async function handleCallback({ sessionId, phoneNumber, text }) {
   const parts = text === '' ? [] : text.split('*');
   const level = parts.length;
 
   const user = await authRepo.findByPhone(phoneNumber);
-  
+
   if (!user) {
     return `END Unregistered phone number.\nPlease register through the web app first.`;
   }
 
-  // Today we only handle DRIVER menus.
   if (user.role === 'DRIVER') {
     return handleDriverMenu(user, parts, level);
-  } else {
-    // Station operator menu is deferred to Day 15
-    return `END Station Operator USSD menu is under construction.`;
   }
+
+  if (user.role === 'STATION_OPERATOR') {
+    return handleOperatorMenu(user, parts, level);
+  }
+
+  return `END Your account role is not supported over USSD.`;
 }
+
+// ── DRIVER MENU ──────────────────────────────────────────────────────────────
 
 async function handleDriverMenu(user, parts, level) {
   if (level === 0) {
@@ -41,29 +47,18 @@ async function handleDriverMenu(user, parts, level) {
   const option = parts[0];
 
   if (option === '1') {
-    // Register Vehicle
-    if (level === 1) {
-      return `CON Enter Vehicle Plate Number:`;
-    } else if (level === 2) {
-      return `CON Select Vehicle Type:
-1. PRIVATE
-2. TAXI
-3. COMMERCIAL`;
-    } else if (level === 3) {
-      return `CON Select Gas Type:
-1. PETROL
-2. DIESEL`;
-    } else if (level === 4) {
-      const plateNumber = parts[1];
+    if (level === 1) return `CON Enter Vehicle Plate Number:`;
+    if (level === 2) return `CON Select Vehicle Type:\n1. PRIVATE\n2. TAXI\n3. COMMERCIAL`;
+    if (level === 3) return `CON Select Gas Type:\n1. PETROL\n2. DIESEL`;
+    if (level === 4) {
+      const plateNumber   = parts[1];
       const typeSelection = parts[2];
       const fuelSelection = parts[3];
-      
-      let vehicleType = 'PRIVATE';
-      if (typeSelection === '2') vehicleType = 'TAXI';
-      if (typeSelection === '3') vehicleType = 'COMMERCIAL';
 
-      let fuelType = 'PETROL';
-      if (fuelSelection === '2') fuelType = 'DIESEL';
+      const vehicleType = typeSelection === '2' ? 'TAXI'
+                        : typeSelection === '3' ? 'COMMERCIAL'
+                        : 'PRIVATE';
+      const fuelType = fuelSelection === '2' ? 'DIESEL' : 'PETROL';
 
       try {
         const vehicle = await vehiclesService.registerVehicle(user.id, { plateNumber, vehicleType, fuelType });
@@ -72,42 +67,36 @@ async function handleDriverMenu(user, parts, level) {
         return `END Error: ${err.message}`;
       }
     }
-  } 
-  
+  }
+
   else if (option === '2') {
-    // Request Fuel
-    
-    // Check if they have a vehicle first
-    const { rows: userVehicles } = await pool.query('SELECT id FROM vehicles WHERE owner_id = $1 LIMIT 1', [user.id]);
+    const { rows: userVehicles } = await pool.query(
+      'SELECT id FROM vehicles WHERE owner_id = $1 LIMIT 1', [user.id]
+    );
     if (userVehicles.length === 0) {
       return `END You must register a vehicle first. Dial again and select 1.`;
     }
     const vehicleId = userVehicles[0].id;
 
-    if (level === 1) {
-      return `CON Enter Station ID (SID):`;
-    } else if (level === 2) {
-      return `CON Enter requested Liters:`;
-    } else if (level === 3) {
-      const sid = parts[1];
-      const litersStr = parts[2];
-      const requestedLiters = parseFloat(litersStr);
-      
+    if (level === 1) return `CON Enter Station ID (SID):`;
+    if (level === 2) return `CON Enter requested Liters:`;
+    if (level === 3) {
+      const sid             = parts[1];
+      const requestedLiters = parseFloat(parts[2]);
+
       if (isNaN(requestedLiters) || requestedLiters <= 0) {
         return `END Invalid liters amount.`;
       }
 
-      // We need station internal UUID from the SID
-      const { rows: stations } = await pool.query('SELECT id FROM stations WHERE sid = $1', [sid]);
-      if (stations.length === 0) {
-        return `END Station not found.`;
-      }
-      const stationId = stations[0].id;
+      const { rows: stations } = await pool.query(
+        'SELECT id FROM stations WHERE sid = $1', [sid]
+      );
+      if (stations.length === 0) return `END Station not found.`;
 
       try {
         const result = await fuelRequestsService.requestFuel(user.id, {
           vehicleId,
-          stationId,
+          stationId: stations[0].id,
           requestedLiters
         });
         return `END Request successful.\nYour code is: ${result.otpCode}\nValid for 30 min.`;
@@ -115,11 +104,12 @@ async function handleDriverMenu(user, parts, level) {
         return `END Error: ${err.message}`;
       }
     }
-  } 
-  
+  }
+
   else if (option === '3') {
-    // Check Quota Balance
-    const { rows: userVehicles } = await pool.query('SELECT id FROM vehicles WHERE owner_id = $1 LIMIT 1', [user.id]);
+    const { rows: userVehicles } = await pool.query(
+      'SELECT id FROM vehicles WHERE owner_id = $1 LIMIT 1', [user.id]
+    );
     if (userVehicles.length === 0) {
       return `END You must register a vehicle first. Dial again and select 1.`;
     }
@@ -132,11 +122,108 @@ async function handleDriverMenu(user, parts, level) {
       }
       const dailyLimit = parseFloat(vehicle.daily_limit_liters);
       const usedLiters = await fuelRequestsRepo.getUsedLitersToday(vehicleId);
-      const remaining = Math.max(0, dailyLimit - usedLiters);
-
+      const remaining  = Math.max(0, dailyLimit - usedLiters);
       return `END You have ${remaining.toFixed(2)} liters remaining today.`;
     } catch (err) {
       return `END Error: ${err.message}`;
+    }
+  }
+
+  return `END Invalid option. Please dial again.`;
+}
+
+// ── STATION OPERATOR MENU ────────────────────────────────────────────────────
+//
+// KNOWN SIMPLIFICATION: The operator types their Station SID manually each
+// session because there is no operator-to-station assignment table yet. This
+// is intentional for now — not a bug. A future migration will add that table.
+
+async function handleOperatorMenu(user, parts, level) {
+  if (level === 0) {
+    return `CON Welcome, Operator\n1. Declare Station Status\n2. Verify Code & Dispense`;
+  }
+
+  const option = parts[0];
+
+  // ── Option 1: Declare Station Status ────────────────────────────────────────
+  if (option === '1') {
+    if (level === 1) return `CON Enter your Station ID (SID):`;
+    if (level === 2) {
+      return `CON Select new status:\n1. OPEN\n2. CLOSED\n3. OUT_OF_STOCK`;
+    }
+    if (level === 3) {
+      const sid          = parts[1];
+      const statusChoice = parts[2];
+
+      const statusMap = { '1': 'OPEN', '2': 'CLOSED', '3': 'OUT_OF_STOCK' };
+      const newStatus = statusMap[statusChoice];
+      if (!newStatus) return `END Invalid status selection.`;
+
+      // Resolve SID → UUID
+      const { rows: stations } = await pool.query(
+        'SELECT id FROM stations WHERE sid = $1', [sid]
+      );
+      if (stations.length === 0) return `END Station not found.`;
+      const stationId = stations[0].id;
+
+      try {
+        // Reuses Day 6 updateStatus, which also triggers Day 7 stock-out check
+        await stationsService.updateStatus(stationId, { status: newStatus });
+
+        if (newStatus === 'OUT_OF_STOCK') {
+          // Check if a FLAGGED reconciliation row was just created
+          const { rows: flagged } = await pool.query(
+            `SELECT id FROM reconciliations
+             WHERE station_id = $1 AND stock_out_flag = true AND status = 'FLAGGED'
+             ORDER BY created_at DESC LIMIT 1`,
+            [stationId]
+          );
+          if (flagged.length > 0) {
+            return `END Status updated to OUT_OF_STOCK.\nNOTE: This has been flagged for review.`;
+          }
+        }
+
+        return `END Status updated to ${newStatus}.`;
+      } catch (err) {
+        return `END Error: ${err.message}`;
+      }
+    }
+  }
+
+  // ── Option 2: Verify Code & Dispense ─────────────────────────────────────────
+  else if (option === '2') {
+    if (level === 1) return `CON Enter the driver's OTP code:`;
+    if (level === 2) return `CON Enter vehicle plate number:`;
+    if (level === 3) return `CON Enter liters dispensed:`;
+    if (level === 4) {
+      const otpCode         = parts[1];
+      const plateNumber     = parts[2];
+      const litersDispensed = parseFloat(parts[3]);
+
+      if (isNaN(litersDispensed) || litersDispensed <= 0) {
+        return `END Invalid liters amount.`;
+      }
+
+      try {
+        // Reuses Day 11 verifyAndDispense directly — zero logic rewritten
+        await dispenseService.verifyAndDispense(user.id, {
+          otpCode,
+          plateNumber,
+          litersDispensed
+        });
+        return `END Dispense authorized.\n${litersDispensed}L dispensed successfully.`;
+      } catch (err) {
+        // Translate machine-readable error codes into operator-friendly plain language
+        const codeMessages = {
+          WRONG_CODE:     'Code not recognised. Please check and try again.',
+          ALREADY_USED:   'Code already used. Ask the driver to request a new code.',
+          EXPIRED:        'Code has expired. Ask the driver to request a new code.',
+          PLATE_MISMATCH: 'Plate number does not match. Please verify the vehicle.',
+          OVER_DISPENSED: 'Liters entered exceed the approved amount.',
+        };
+        const friendly = codeMessages[err.code] || err.message;
+        return `END ${friendly}`;
+      }
     }
   }
 
