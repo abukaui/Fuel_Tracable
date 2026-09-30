@@ -10,13 +10,18 @@ const pool = require('../../db/pool');
 /**
  * Find a user by phone number.
  * Returns the full row INCLUDING password_hash (service layer strips it).
+ * Normalizes by checking the last 9 digits to handle mixed country codes (+254, 07, etc).
  */
 async function findByPhone(phone) {
+  // Extract only digits and take the last 9 digits
+  const digits = phone.replace(/\D/g, '');
+  const last9 = digits.slice(-9);
+
   const { rows } = await pool.query(
     `SELECT id, full_name, phone, password_hash, role, created_at
      FROM users
-     WHERE phone = $1`,
-    [phone],
+     WHERE phone LIKE $1`,
+    [`%${last9}`],
   );
   return rows[0] ?? null;
 }
