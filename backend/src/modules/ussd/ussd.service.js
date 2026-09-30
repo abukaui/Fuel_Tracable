@@ -195,6 +195,8 @@ async function handleOperatorMenu(user, parts, level) {
     if (level === 1) return `CON Enter the driver's OTP code:`;
     if (level === 2) return `CON Enter vehicle plate number:`;
     if (level === 3) return `CON Enter liters dispensed:`;
+
+    // Level 4: show vehicle summary + quota, ask for confirmation
     if (level === 4) {
       const otpCode         = parts[1];
       const plateNumber     = parts[2];
@@ -205,7 +207,49 @@ async function handleOperatorMenu(user, parts, level) {
       }
 
       try {
-        // Reuses Day 11 verifyAndDispense directly — zero logic rewritten
+        const { matchedRequest, vehicleDetails, usedLiters, dailyLimit } =
+          await dispenseService.previewDispense(otpCode);
+
+        // Plate mismatch check at preview stage too
+        const submittedPlate = plateNumber.trim().toUpperCase();
+        const vehiclePlate   = matchedRequest.plate_number.trim().toUpperCase();
+        if (submittedPlate !== vehiclePlate) {
+          return `END Plate number does not match. Please verify the vehicle.`;
+        }
+
+        const remaining = dailyLimit != null
+          ? Math.max(0, dailyLimit - usedLiters - litersDispensed).toFixed(1)
+          : 'N/A';
+
+        return `CON --- Vehicle Info ---
+Plate: ${matchedRequest.plate_number}
+Type: ${vehicleDetails.vehicle_type || 'N/A'}
+Gas: ${vehicleDetails.fuel_type || 'N/A'}
+Requested: ${matchedRequest.requested_liters}L
+Dispensing: ${litersDispensed}L
+After quota: ${remaining}L left
+
+1. Confirm Dispense
+2. Cancel`;
+      } catch (err) {
+        const codeMessages = {
+          WRONG_CODE: 'Code not recognised. Please check and try again.',
+          EXPIRED:    'Code has expired. Ask the driver to request a new code.',
+        };
+        return `END ${codeMessages[err.code] || err.message}`;
+      }
+    }
+
+    // Level 5: operator confirms or cancels
+    if (level === 5) {
+      const confirm = parts[4];
+      if (confirm !== '1') return `END Dispense cancelled.`;
+
+      const otpCode         = parts[1];
+      const plateNumber     = parts[2];
+      const litersDispensed = parseFloat(parts[3]);
+
+      try {
         await dispenseService.verifyAndDispense(user.id, {
           otpCode,
           plateNumber,
@@ -213,7 +257,6 @@ async function handleOperatorMenu(user, parts, level) {
         });
         return `END Dispense authorized.\n${litersDispensed}L dispensed successfully.`;
       } catch (err) {
-        // Translate machine-readable error codes into operator-friendly plain language
         const codeMessages = {
           WRONG_CODE:     'Code not recognised. Please check and try again.',
           ALREADY_USED:   'Code already used. Ask the driver to request a new code.',
@@ -221,8 +264,7 @@ async function handleOperatorMenu(user, parts, level) {
           PLATE_MISMATCH: 'Plate number does not match. Please verify the vehicle.',
           OVER_DISPENSED: 'Liters entered exceed the approved amount.',
         };
-        const friendly = codeMessages[err.code] || err.message;
-        return `END ${friendly}`;
+        return `END ${codeMessages[err.code] || err.message}`;
       }
     }
   }

@@ -3,6 +3,7 @@
 const bcrypt   = require('bcryptjs');
 const repo     = require('./dispense.repository');
 const fuelRepo = require('../fuel-requests/fuel-requests.repository');
+const pool     = require('../../db/pool');
 
 const OVER_DISPENSE_TOLERANCE = 0.5; // litres — allows for meter rounding
 
@@ -112,7 +113,51 @@ async function getDispenseById(dispenseId, user) {
   return dispense;
 }
 
+/**
+ * previewDispense
+ *
+ * Performs the bcrypt OTP scan and returns a summary of the matched request
+ * (vehicle plate, type, fuel type, requested liters, remaining daily quota)
+ * WITHOUT writing any records. Used by the USSD confirmation step.
+ *
+ * Returns { matchedRequest, vehicleDetails, usedLiters, dailyLimit }
+ * Throws with the same error codes as verifyAndDispense on failure.
+ */
+async function previewDispense(otpCode) {
+  const pendingRequests = await repo.findPendingRequests();
+
+  let matchedRequest = null;
+  for (const req of pendingRequests) {
+    const isMatch = await bcrypt.compare(String(otpCode), req.otp_code_hash);
+    if (isMatch) { matchedRequest = req; break; }
+  }
+
+  if (!matchedRequest) {
+    throw httpError('No matching pending fuel request found for this OTP.', 400, 'WRONG_CODE');
+  }
+
+  const now = new Date();
+  if (new Date(matchedRequest.expires_at) < now) {
+    throw httpError(`This OTP has expired.`, 400, 'EXPIRED');
+  }
+
+  // Fetch full vehicle details (type, fuel_type)
+  const { rows: vRows } = await pool.query(
+    'SELECT vehicle_type, fuel_type FROM vehicles WHERE id = $1',
+    [matchedRequest.vehicle_id]
+  );
+  const vehicleDetails = vRows[0] || {};
+
+  // Fetch quota info
+  const vehicleWithPolicy = await fuelRepo.getVehicleWithPolicy(matchedRequest.vehicle_id);
+  const dailyLimit = vehicleWithPolicy ? parseFloat(vehicleWithPolicy.daily_limit_liters) : null;
+  const usedLiters = await fuelRepo.getUsedLitersToday(matchedRequest.vehicle_id);
+
+  return { matchedRequest, vehicleDetails, usedLiters, dailyLimit };
+}
+
 module.exports = {
   verifyAndDispense,
   getDispenseById,
+  previewDispense,
 };
