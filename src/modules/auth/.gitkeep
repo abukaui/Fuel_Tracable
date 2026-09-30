@@ -1,0 +1,13 @@
+'use strict';
+
+const jwt = require('jsonwebtoken');
+const config = require('../../config');
+const authenticate = require('../../middleware/authenticate');
+
+/**
+ * authenticate.js must exist before this file is required.
+ * Re-exporting it here lets auth.routes import from one place if needed,
+ * but it lives in /middleware as specified.
+ */
+
+module.exports = { jwt, config, authenticate };

@@ -1,0 +1,2 @@
+# Day 2: SQL migration files go here.
+# Naming convention: V<version>__<description>.sql (e.g. V001__create_stations.sql)

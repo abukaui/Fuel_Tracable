@@ -1,0 +1,2 @@
+# Feature modules go here (e.g. /stations, /allocations, /users).
+# Each module owns its own routes, controllers, and service logic.
