@@ -1,139 +1,163 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 
+function CategoryBadge({ cat }) {
+  const map = {
+    'Refused Sale': 'badge-red',
+    'False Stock-Out Suspected': 'badge-orange',
+    'Other': 'badge-gray',
+  };
+  return <span className={`badge ${map[cat] || 'badge-gray'}`}>{cat}</span>;
+}
+
+function StatusBadge({ status }) {
+  const map = { OPEN: 'badge-green', REVIEWED: 'badge-blue', DISMISSED: 'badge-gray' };
+  return <span className={`badge ${map[status] || 'badge-gray'}`}>{status}</span>;
+}
+
 export default function Complaints() {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [role, setRole] = useState('');
-
-  const fetchComplaints = async () => {
-    try {
-      const data = await apiClient('/api/complaints');
-      setComplaints(data.complaints || []);
-    } catch (err) {
-      setError(err.message || 'Unable to load complaints.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [userRole, setUserRole] = useState(null);
+  const [updating, setUpdating] = useState({});
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setRole(payload.role);
-      } catch (e) {
-        // ignore
-      }
-    }
-    fetchComplaints();
+    Promise.all([
+      apiClient('/api/auth/me'),
+      apiClient('/api/complaints'),
+    ]).then(([me, data]) => {
+      if (me?.user) setUserRole(me.user.role);
+      setComplaints(data.complaints || []);
+    }).catch(() => setError('Failed to load complaints.'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleUpdateStatus = async (id, newStatus) => {
+  const handleMark = async (complaintId, newStatus) => {
+    setUpdating(u => ({ ...u, [complaintId]: true }));
     try {
-      await apiClient(`/api/complaints/${id}`, {
-        body: { status: newStatus }
+      const res = await apiClient(`/api/complaints/${complaintId}`, {
+        method: 'PUT', body: { status: newStatus }
       });
-      // Update local state without full refresh
-      setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
+      setComplaints(cs => cs.map(c => c.id === complaintId ? { ...c, status: newStatus } : c));
     } catch (err) {
-      alert(err.message || 'Failed to update status');
+      alert(err.message);
+    } finally {
+      setUpdating(u => ({ ...u, [complaintId]: false }));
     }
   };
 
-  const getStatusBadge = (status) => {
-    let color = 'gray';
-    if (status === 'OPEN') color = 'darkorange';
-    if (status === 'REVIEWED') color = 'green';
-    
-    return (
-      <span style={{ 
-        display: 'inline-block',
-        padding: '2px 8px', 
-        backgroundColor: color, 
-        color: 'white', 
-        fontWeight: 'bold', 
-        borderRadius: '4px',
-        fontSize: '0.85em'
-      }}>
-        {status}
-      </span>
-    );
-  };
+  const filtered = complaints.filter(c => {
+    const matchSearch = !search ||
+      c.station_name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.category?.toLowerCase().includes(search.toLowerCase()) ||
+      c.description?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || c.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
-  const formatDate = (ds) => {
-    if (!ds) return 'N/A';
-    const d = new Date(ds);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
-
-  if (loading) return <div style={{ padding: '2rem' }}>Loading complaints...</div>;
-  if (error) return <div style={{ padding: '2rem', color: 'red' }}>{error}</div>;
+  if (loading) return <div className="loading-screen">⏳ Loading complaints...</div>;
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2>Driver Complaints</h2>
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Complaints</h1>
+        <p className="page-subtitle">View and manage driver complaints about stations.</p>
+      </div>
 
-      <div style={{ overflowX: 'auto', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #ccc' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      {error && <div className="alert alert-error">{error}</div>}
+
+      <div className="table-card">
+        <div className="table-header">
+          <span className="table-title">All Complaints</span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="search-wrap">
+              <span className="search-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <input
+                placeholder="Search by station, category or description..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="filter-select"
+              style={{ minWidth: 130 }}
+            >
+              <option value="">All Statuses</option>
+              <option value="OPEN">OPEN</option>
+              <option value="REVIEWED">REVIEWED</option>
+              <option value="DISMISSED">DISMISSED</option>
+            </select>
+            <button className="btn btn-outline btn-sm" onClick={() => { setSearch(''); setStatusFilter(''); }}>Reset</button>
+          </div>
+        </div>
+
+        <table>
           <thead>
-            <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '2px solid #ddd' }}>
-              <th style={{ padding: '0.75rem' }}>Date</th>
-              <th style={{ padding: '0.75rem' }}>Station</th>
-              <th style={{ padding: '0.75rem' }}>Category</th>
-              <th style={{ padding: '0.75rem' }}>Description</th>
-              <th style={{ padding: '0.75rem' }}>Status</th>
-              {role === 'GOV_REGULATOR' && <th style={{ padding: '0.75rem' }}>Action</th>}
+            <tr>
+              <th>ID</th>
+              <th>Station</th>
+              <th>Vehicle ID</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Created At</th>
+              {userRole === 'GOV_REGULATOR' && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
-            {complaints.length === 0 ? (
-              <tr>
-                <td colSpan={role === 'GOV_REGULATOR' ? '6' : '5'} style={{ padding: '1.5rem', textAlign: 'center', color: '#666' }}>
-                  No complaints found.
-                </td>
-              </tr>
-            ) : (
-              complaints.map(row => (
-                <tr key={row.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '0.75rem', fontSize: '0.9em', color: '#555' }}>
-                    {formatDate(row.created_at)}
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>
-                    <strong>{row.station_name}</strong><br />
-                    <span style={{ fontSize: '0.85em', color: '#666' }}>{row.station_sid}</span>
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>{row.category}</td>
-                  <td style={{ padding: '0.75rem', maxWidth: '300px' }}>{row.description}</td>
-                  <td style={{ padding: '0.75rem' }}>{getStatusBadge(row.status)}</td>
-                  {role === 'GOV_REGULATOR' && (
-                    <td style={{ padding: '0.75rem' }}>
-                      {row.status === 'OPEN' ? (
-                        <select 
-                          onChange={(e) => {
-                            if (e.target.value) handleUpdateStatus(row.id, e.target.value);
-                            e.target.value = ''; // Reset select
-                          }}
-                          defaultValue=""
+            {filtered.length === 0 ? (
+              <tr><td colSpan="8" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No complaints found.</td></tr>
+            ) : filtered.map(c => (
+              <tr key={c.id}>
+                <td className="td-muted td-bold" style={{ fontSize: '12px' }}>CMP-{String(c.id).slice(-4).toUpperCase()}</td>
+                <td className="td-link td-bold">{c.station_name || c.station_id?.slice(0, 8) || '—'}</td>
+                <td className="td-muted">{c.vehicle_vid || c.vehicle_id?.slice(0, 8) || '—'}</td>
+                <td><CategoryBadge cat={c.category} /></td>
+                <td style={{ maxWidth: 240, fontSize: '13px' }}>{c.description}</td>
+                <td><StatusBadge status={c.status} /></td>
+                <td className="td-muted" style={{ fontSize: '12px' }}>{c.created_at ? new Date(c.created_at).toLocaleString() : '—'}</td>
+                {userRole === 'GOV_REGULATOR' && (
+                  <td>
+                    {c.status === 'OPEN' ? (
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          disabled={updating[c.id]}
+                          onClick={() => handleMark(c.id, 'REVIEWED')}
                         >
-                          <option value="" disabled>Update Status</option>
-                          <option value="REVIEWED">Mark REVIEWED</option>
-                          <option value="DISMISSED">Mark DISMISSED</option>
-                        </select>
-                      ) : (
-                        <span style={{ fontSize: '0.85em', color: '#999' }}>No actions</span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
+                          Reviewed
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          disabled={updating[c.id]}
+                          onClick={() => handleMark(c.id, 'DISMISSED')}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="td-muted" style={{ fontSize: '12px' }}>—</span>
+                    )}
+                  </td>
+                )}
+              </tr>
+            ))}
           </tbody>
         </table>
+
+        <div className="pagination">
+          <span>Showing {filtered.length} of {complaints.length} complaints</span>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

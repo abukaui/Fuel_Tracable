@@ -6,68 +6,82 @@ export default function Login() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
+    setLoading(true);
     try {
-      const data = await apiClient('/api/auth/login', {
-        body: { phone, password }
-      });
-      
+      const data = await apiClient('/api/auth/login', { body: { phone, password } });
       const token = data.result?.token;
-      if (!token) throw new Error('Invalid phone number or password.');
-      
+      if (!token) throw new Error('Invalid credentials.');
       localStorage.setItem('token', token);
-
-      // Decode token for routing
       const payload = JSON.parse(atob(token.split('.')[1]));
       const role = payload.role;
-
-      if (role === 'GOV_REGULATOR' || role === 'ADMIN') {
-        navigate('/stations');
-      } else if (role === 'STATION_OPERATOR') {
-        navigate('/operator');
-      } else {
-        // Just send drivers to / to trigger the catch-all protected route message
-        navigate('/');
-      }
+      if (role === 'GOV_REGULATOR' || role === 'ADMIN') navigate('/stations');
+      else if (role === 'STATION_OPERATOR') navigate('/operator');
+      else navigate('/');
     } catch (err) {
       setError(err.message || 'Invalid phone number or password.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '2rem', border: '1px solid #ccc', borderRadius: '8px' }}>
-      <h2>Login</h2>
-      {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div>
-          <label style={{ display: 'block' }}>Phone</label>
-          <input 
-            type="text" 
-            value={phone} 
-            onChange={(e) => setPhone(e.target.value)} 
-            style={{ width: '100%', padding: '0.5rem' }} 
-            required 
-          />
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="login-logo-icon">🔥</div>
+          <div className="login-logo-title">FuelGuard</div>
+          <div className="login-logo-sub">Fuel Distribution & Control System</div>
         </div>
-        <div>
-          <label style={{ display: 'block' }}>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            style={{ width: '100%', padding: '0.5rem' }} 
-            required 
-          />
-        </div>
-        <button type="submit" style={{ padding: '0.5rem', backgroundColor: '#0066cc', color: 'white', border: 'none', borderRadius: '4px' }}>
-          Login
-        </button>
-      </form>
+
+        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.25rem', color: 'var(--text)' }}>
+          Sign in to your account
+        </h2>
+
+        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Phone Number</label>
+            <input
+              className="form-input"
+              type="text"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="+251911000000"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              className="form-input"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={loading}
+            style={{ width: '100%', justifyContent: 'center', padding: '0.65rem', fontSize: '14px', marginTop: '0.5rem' }}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '12px', color: 'var(--text-muted)' }}>
+          Drivers access fuel services via USSD shortcode
+        </p>
+      </div>
     </div>
   );
 }

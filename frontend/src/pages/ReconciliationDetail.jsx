@@ -2,236 +2,172 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 
+function ReconBadge({ status }) {
+  const map = { OK: 'badge-green', FLAGGED: 'badge-orange', RESOLVED: 'badge-blue', INCOMPLETE: 'badge-gray' };
+  return <span className={`badge ${map[status] || 'badge-gray'}`}>{status}</span>;
+}
+
 export default function ReconciliationDetail() {
   const { id } = useParams();
-  const [reconciliation, setReconciliation] = useState(null);
+  const [rec, setRec] = useState(null);
   const [station, setStation] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState('');
+  const [error, setError] = useState('');
+  const [note, setNote] = useState('');
 
-  const [userRole, setUserRole] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const me = await apiClient('/api/auth/me');
-        if (me && me.user) setUserRole(me.user.role);
-        
-        const reconData = await apiClient(`/api/reconciliations/${id}`);
-        const recon = reconData.reconciliation;
-        setReconciliation(recon);
-
-        if (recon && recon.station_id) {
-          const stationData = await apiClient(`/api/stations/${recon.station_id}`);
-          setStation(stationData.station);
-        }
-      } catch (err) {
-        setError(err.message || 'Unable to load reconciliation detail.');
-      } finally {
-        setLoading(false);
+  const fetchData = async () => {
+    try {
+      const me = await apiClient('/api/auth/me');
+      if (me?.user) setUserRole(me.user.role);
+      const d = await apiClient(`/api/reconciliations/${id}`);
+      setRec(d.reconciliation);
+      if (d.reconciliation?.station_id) {
+        const sd = await apiClient(`/api/stations/${d.reconciliation.station_id}`);
+        setStation(sd.station);
       }
-    };
-
-    fetchData();
-  }, [id]);
-
-  if (loading) {
-    return <div style={{ padding: '2rem' }}>Loading reconciliation history...</div>;
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: '2rem' }}>
-        <div style={{ color: 'red' }}>{error}</div>
-        <Link to="/stations">← Back to Stations</Link>
-      </div>
-    );
-  }
-
-  if (!reconciliation) return null;
-
-  const getReconStatusBadge = (status) => {
-    let color = 'gray';
-    if (status === 'OK') color = 'green';
-    if (status === 'FLAGGED') color = 'darkorange';
-    if (status === 'RESOLVED') color = 'blue';
-
-    return (
-      <span style={{ 
-        display: 'inline-block',
-        padding: '4px 12px', 
-        border: `2px solid ${color}`, 
-        color, 
-        fontWeight: 'bold', 
-        borderRadius: '6px'
-      }}>
-        [ {status} ]
-      </span>
-    );
+    } catch (err) {
+      setError(err.message || 'Failed to load.');
+    } finally { setLoading(false); }
   };
 
-  const formatDate = (ds) => {
-    if (!ds) return 'N/A';
-    const d = new Date(ds);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  useEffect(() => { fetchData(); }, [id]);
+
+  const handleResolve = async (e) => {
+    e.preventDefault();
+    if (!note.trim()) return;
+    setResolving(true); setResolveError('');
+    try {
+      const res = await apiClient(`/api/reconciliations/${id}/resolve`, {
+        method: 'PUT', body: { note }
+      });
+      setRec(res.reconciliation);
+      setNote('');
+    } catch (err) {
+      setResolveError(err.message || 'Failed to resolve.');
+    } finally { setResolving(false); }
   };
+
+  const fmt = (d) => d ? new Date(d).toLocaleString() : '—';
+
+  if (loading) return <div className="loading-screen">⏳ Loading...</div>;
+  if (error) return <div className="alert alert-error">{error}</div>;
+  if (!rec) return null;
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1rem' }}>
-        <Link to={reconciliation.station_id ? `/stations/${reconciliation.station_id}` : '/stations'} style={{ textDecoration: 'none', color: '#0066cc' }}>
-          ← Back to Station
-        </Link>
+    <>
+      <div className="page-header">
+        <div style={{ marginBottom: '0.25rem' }}>
+          <Link to={station ? `/stations/${station.id}` : '/stations'} style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>
+            ← {station?.name || 'Back to Station'}
+          </Link>
+        </div>
+        <h1 className="page-title">Reconciliation Detail</h1>
+        <p className="page-subtitle">
+          Period: {fmt(rec.period_start)} → {fmt(rec.period_end)}
+        </p>
       </div>
 
-      <div style={{ backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '8px', padding: '2rem' }}>
-        <h2 style={{ borderBottom: '2px solid #eee', paddingBottom: '1rem', marginTop: 0 }}>RECONCILIATION DETAIL</h2>
-
-        <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
-          <div style={{ flex: 1 }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#666' }}>Station</h4>
-            {station ? (
-              <>
-                <div style={{ fontWeight: 'bold', fontSize: '1.1em' }}>{station.name}</div>
-                <div style={{ color: '#555' }}>{station.sid}</div>
-              </>
-            ) : (
-              <div>Loading station...</div>
-            )}
-          </div>
-          <div style={{ flex: 1 }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#666' }}>Period</h4>
-            <div>{formatDate(reconciliation.period_start)}</div>
-            <div style={{ color: '#aaa', margin: '0.2rem 0' }}>↓</div>
-            <div>{formatDate(reconciliation.period_end)}</div>
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+        {/* Status card */}
+        <div className="card">
+          <div className="card-title">Status</div>
+          <div style={{ marginTop: '0.5rem' }}><ReconBadge status={rec.status} /></div>
+          {rec.stock_out_flag && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <span className="badge badge-red">⚠ Stock-Out Contradiction Detected</span>
+            </div>
+          )}
         </div>
-
-        <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '2rem 0' }} />
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1em' }}>Tank Volume Delta</div>
-              <div style={{ fontSize: '0.85em', color: '#666' }}>Measured change in ATG levels</div>
-            </div>
-            <div style={{ fontSize: '1.2em' }}>
-              {reconciliation.tank_volume_delta != null ? `${parseFloat(reconciliation.tank_volume_delta).toLocaleString()} L` : 'N/A'}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1em' }}>Verified Dispense Volume</div>
-              <div style={{ fontSize: '0.85em', color: '#666' }}>Total recorded driver dispenses</div>
-            </div>
-            <div style={{ fontSize: '1.2em' }}>
-              {reconciliation.verified_dispense_volume != null ? `${parseFloat(reconciliation.verified_dispense_volume).toLocaleString()} L` : 'N/A'}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9f9f9', padding: '1rem', borderRadius: '6px' }}>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1em' }}>Variance</div>
-              <div style={{ fontSize: '0.85em', color: '#666' }}>Unexplained missing/surplus fuel</div>
-            </div>
-            <div style={{ fontSize: '1.3em', fontWeight: 'bold' }}>
-              {reconciliation.variance != null ? `${parseFloat(reconciliation.variance).toLocaleString()} L` : 'N/A'}
-            </div>
-          </div>
+        {/* Station card */}
+        <div className="card">
+          <div className="card-title">Station</div>
+          {station ? (
+            <>
+              <div style={{ fontWeight: 600 }}>{station.name}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>SID: {station.sid}</div>
+            </>
+          ) : <div className="text-muted">—</div>}
         </div>
+      </div>
 
-        <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '2rem 0' }} />
+      {/* Volume evidence */}
+      <div className="table-card" style={{ marginBottom: '1.5rem' }}>
+        <div className="table-header"><span className="table-title">Volume Evidence</span></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th style={{ textAlign: 'right' }}>Value</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="td-bold">Tank Volume Delta</td>
+              <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                {rec.tank_volume_delta != null ? `${parseFloat(rec.tank_volume_delta).toFixed(2)} L` : 'N/A'}
+              </td>
+              <td className="td-muted">Measured change in ATG tank levels</td>
+            </tr>
+            <tr>
+              <td className="td-bold">Verified Dispense Volume</td>
+              <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                {rec.verified_dispense_volume != null ? `${parseFloat(rec.verified_dispense_volume).toFixed(2)} L` : 'N/A'}
+              </td>
+              <td className="td-muted">Total OTP-verified driver dispenses</td>
+            </tr>
+            <tr style={{ background: '#fafafa' }}>
+              <td className="td-bold">Variance</td>
+              <td style={{ textAlign: 'right', fontWeight: 700, color: Math.abs(parseFloat(rec.variance_liters || 0)) > 10 ? 'var(--red)' : 'var(--text)' }}>
+                {rec.variance_liters != null ? `${parseFloat(rec.variance_liters).toFixed(2)} L` : 'N/A'}
+              </td>
+              <td className="td-muted">Unexplained fuel difference</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-          <div>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#666' }}>Status</h4>
-            {getReconStatusBadge(reconciliation.status)}
-          </div>
-          <div>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#666' }}>Stock-Out Check</h4>
-            {reconciliation.stock_out_flag ? (
-              <span style={{ 
-                display: 'inline-block',
-                padding: '4px 12px', 
-                border: '2px solid darkred', 
-                color: 'darkred', 
-                fontWeight: 'bold', 
-                borderRadius: '6px'
-              }}>
-                [ ⚠ STOCK-OUT FLAG ]
-              </span>
-            ) : (
-              <span style={{ color: '#888' }}>No stock-out contradiction</span>
-            )}
-          </div>
-        </div>
-
-        <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '2rem 0' }} />
-
-        {reconciliation.status === 'RESOLVED' ? (
-          <div>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#666' }}>Resolution details</h4>
-            <div style={{ backgroundColor: '#f0f8ff', padding: '1rem', borderRadius: '6px' }}>
-              <p style={{ margin: '0 0 0.5rem 0' }}><strong>Investigated By:</strong> {reconciliation.investigated_by || 'Unknown'}</p>
-              <p style={{ margin: 0 }}><strong>Note:</strong> {reconciliation.investigation_note}</p>
+      {/* Resolution */}
+      <div className="card">
+        {rec.status === 'RESOLVED' ? (
+          <>
+            <div style={{ fontWeight: 600, marginBottom: '0.75rem' }}>✅ Resolution Details</div>
+            <div className="alert alert-success">
+              <div>
+                <strong>Investigated By:</strong> {rec.investigated_by || 'Unknown'}<br />
+                <strong>Note:</strong> {rec.investigation_note}
+              </div>
             </div>
-          </div>
-        ) : (userRole === 'GOV_REGULATOR' ? (
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const note = formData.get('note');
-            if (!note || !note.trim()) return;
-
-            setResolving(true);
-            setResolveError('');
-            try {
-              const res = await apiClient(`/api/reconciliations/${id}/resolve`, {
-                method: 'PUT',
-                body: { note }
-              });
-              setReconciliation(res.reconciliation);
-            } catch (err) {
-              setResolveError(err.message || 'Error resolving reconciliation');
-            } finally {
-              setResolving(false);
-            }
-          }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#666' }}>Resolution Note</h4>
-            {resolveError && <div style={{ color: 'red', marginBottom: '0.75rem' }}>{resolveError}</div>}
-            <textarea 
-              name="note" 
-              required
-              rows="4" 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem', boxSizing: 'border-box' }}
-              placeholder="Reviewed the ATG readings and dispensing records..."
-            ></textarea>
+          </>
+        ) : userRole === 'GOV_REGULATOR' ? (
+          <form onSubmit={handleResolve}>
+            <div style={{ fontWeight: 600, marginBottom: '0.75rem' }}>Resolve This Reconciliation</div>
+            {resolveError && <div className="alert alert-error" style={{ marginBottom: '0.75rem' }}>{resolveError}</div>}
+            <div className="form-group">
+              <label className="form-label">Investigation Note</label>
+              <textarea
+                className="form-textarea"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="Reviewed the ATG readings and dispensing records. Discrepancy explained..."
+                required
+              />
+            </div>
             <div style={{ textAlign: 'right' }}>
-              <button type="submit" disabled={resolving} style={{ 
-                padding: '0.75rem 2rem', 
-                backgroundColor: resolving ? '#ccc' : '#0066cc', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '4px',
-                cursor: resolving ? 'not-allowed' : 'pointer',
-                fontWeight: 'bold'
-              }}>
-                {resolving ? 'Resolving...' : 'Resolve Reconciliation'}
+              <button type="submit" className="btn btn-primary" disabled={resolving}>
+                {resolving ? 'Resolving…' : 'Resolve Reconciliation'}
               </button>
             </div>
           </form>
         ) : (
-          <div style={{ textAlign: 'right', color: '#666' }}>
+          <div className="text-muted" style={{ textAlign: 'center', padding: '1rem' }}>
             Only GOV_REGULATOR can resolve this reconciliation.
           </div>
-        ))}
-
+        )}
       </div>
-    </div>
+    </>
   );
 }

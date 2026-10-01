@@ -12,7 +12,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      
+
       {/* Gov / Admin routes */}
       <Route element={<ProtectedRoute allowedRoles={['GOV_REGULATOR', 'ADMIN']} />}>
         <Route path="/stations" element={<GovDashboard />} />
@@ -27,7 +27,7 @@ export default function App() {
         <Route path="/operator" element={<OperatorDashboard />} />
       </Route>
 
-      {/* Catch-all for drivers or unhandled paths (protected route handles role rejections) */}
+      {/* Catch-all */}
       <Route element={<ProtectedRoute />}>
         <Route path="*" element={<Navigate to="/stations" replace />} />
       </Route>

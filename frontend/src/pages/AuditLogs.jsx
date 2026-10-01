@@ -1,177 +1,186 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { apiClient } from '../api/client';
+
+const ACTION_COLORS = {
+  STATION_SUSPENDED: 'badge-orange',
+  STATION_REINSTATED: 'badge-green',
+  DISPENSE_VERIFIED: 'badge-blue',
+  RECONCILIATION_RESOLVED: 'badge-purple',
+  COMPLAINT_CREATED: 'badge-gray',
+  STATION_STATUS_UPDATED: 'badge-teal',
+  USER_REGISTERED: 'badge-teal',
+  LOGIN: 'badge-gray',
+};
+
+function ActionPill({ action }) {
+  const cls = ACTION_COLORS[action] || 'badge-gray';
+  return <span className={`badge ${cls}`} style={{ fontSize: '11px', fontWeight: 600 }}>{action}</span>;
+}
+
+function RolePill({ role }) {
+  const map = {
+    GOV_REGULATOR: 'badge-purple',
+    ADMIN: 'badge-blue',
+    STATION_OPERATOR: 'badge-teal',
+    DRIVER: 'badge-gray',
+  };
+  return <span className={`badge ${map[role] || 'badge-gray'}`} style={{ fontSize: '10px' }}>{role}</span>;
+}
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
-
-  // Filters
-  const [actorId, setActorId] = useState('');
-  const [entityType, setEntityType] = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  
-  // Pagination
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [total, setTotal] = useState(0);
+  const LIMIT = 10;
 
-  const fetchLogs = async (currentPage) => {
-    setLoading(true);
+  const [filters, setFilters] = useState({ actorId: '', entityType: '', from: '', to: '' });
+  const [applied, setApplied] = useState({ actorId: '', entityType: '', from: '', to: '' });
+
+  const fetchLogs = async (f, p = 1) => {
+    setLoading(true); setError('');
+    const offset = (p - 1) * LIMIT;
+    const params = new URLSearchParams({ limit: LIMIT, offset });
+    if (f.actorId) params.set('actorId', f.actorId);
+    if (f.entityType) params.set('entityType', f.entityType);
+    if (f.from) params.set('from', f.from);
+    if (f.to) params.set('to', f.to);
     try {
-      const offset = (currentPage - 1) * limit;
-      let query = `?limit=${limit}&offset=${offset}`;
-      
-      if (actorId) query += `&actorId=${encodeURIComponent(actorId)}`;
-      if (entityType) query += `&entityType=${encodeURIComponent(entityType)}`;
-      if (fromDate) query += `&from=${encodeURIComponent(fromDate)}`;
-      if (toDate) query += `&to=${encodeURIComponent(toDate)}`;
-
-      const data = await apiClient(`/api/audit-logs${query}`);
+      const data = await apiClient(`/api/audit-logs?${params}`);
       setLogs(data.logs || []);
+      setTotal(data.total || 0);
+      setLoaded(true);
+      setPage(p);
     } catch (err) {
-      setError(err.message || 'Unable to load audit logs.');
-    } finally {
-      setLoading(false);
-    }
+      setError(err.message || 'Failed to load audit logs.');
+    } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchLogs(page);
-  }, [page]);
-
-  const handleApplyFilters = (e) => {
-    e.preventDefault();
-    if (page !== 1) {
-      setPage(1); // Effect will trigger fetch
-    } else {
-      fetchLogs(1);
-    }
+  const handleApply = () => { setApplied({ ...filters }); fetchLogs(filters, 1); };
+  const handleClear = () => {
+    const empty = { actorId: '', entityType: '', from: '', to: '' };
+    setFilters(empty); setApplied(empty); fetchLogs(empty, 1);
   };
 
-  const handleClearFilters = () => {
-    setActorId('');
-    setEntityType('');
-    setFromDate('');
-    setToDate('');
-    if (page !== 1) setPage(1);
-    else fetchLogs(1);
-  };
+  const totalPages = Math.ceil(total / LIMIT);
 
-  const formatDate = (ds) => {
-    if (!ds) return 'N/A';
-    const d = new Date(ds);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
+  // Load on first render
+  if (!loaded && !loading) fetchLogs(applied, 1);
+
+  const fmt = (d) => d ? new Date(d).toLocaleString() : '—';
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2>Audit Logs</h2>
-
-      <form 
-        onSubmit={handleApplyFilters} 
-        style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          marginBottom: '2rem', 
-          padding: '1rem', 
-          backgroundColor: '#fff', 
-          border: '1px solid #ccc', 
-          borderRadius: '8px',
-          alignItems: 'flex-end',
-          flexWrap: 'wrap'
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={{ fontSize: '0.85em', fontWeight: 'bold' }}>Actor ID</label>
-          <input type="text" value={actorId} onChange={e => setActorId(e.target.value)} placeholder="UUID..." />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={{ fontSize: '0.85em', fontWeight: 'bold' }}>Entity Type</label>
-          <input type="text" value={entityType} onChange={e => setEntityType(e.target.value)} placeholder="e.g. DISPENSE" />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={{ fontSize: '0.85em', fontWeight: 'bold' }}>From</label>
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <label style={{ fontSize: '0.85em', fontWeight: 'bold' }}>To</label>
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button type="submit" style={{ padding: '0.5rem 1rem', backgroundColor: '#0066cc', color: 'white', border: 'none', borderRadius: '4px' }}>Apply Filters</button>
-          <button type="button" onClick={handleClearFilters} style={{ padding: '0.5rem 1rem', backgroundColor: '#eee', border: '1px solid #ccc', borderRadius: '4px' }}>Clear</button>
-        </div>
-      </form>
-
-      {error ? (
-        <div style={{ color: 'red' }}>{error}</div>
-      ) : loading ? (
-        <div>Loading complaints... (fetching logs)</div>
-      ) : (
-        <div style={{ overflowX: 'auto', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #ccc' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '2px solid #ddd' }}>
-                <th style={{ padding: '0.75rem' }}>Time</th>
-                <th style={{ padding: '0.75rem' }}>Actor</th>
-                <th style={{ padding: '0.75rem' }}>Action</th>
-                <th style={{ padding: '0.75rem' }}>Entity Type</th>
-                <th style={{ padding: '0.75rem' }}>Entity ID</th>
-                <th style={{ padding: '0.75rem' }}>Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: '1.5rem', textAlign: 'center', color: '#666' }}>
-                    No audit records found.
-                  </td>
-                </tr>
-              ) : (
-                logs.map(log => (
-                  <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '0.75rem', fontSize: '0.85em', color: '#555' }}>{formatDate(log.occurred_at)}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      {log.actor_name ? (
-                        <><strong>{log.actor_name}</strong><br /><span style={{fontSize: '0.8em', color:'#666'}}>{log.actor_id}</span></>
-                      ) : (
-                        <span style={{ fontSize: '0.85em', color: '#666' }}>{log.actor_id}</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>{log.action}</td>
-                    <td style={{ padding: '0.75rem' }}>{log.entity_type}</td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.85em', color: '#666' }}>{log.entity_id}</td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.85em' }}>
-                      {log.details ? <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxWidth: '200px' }}>{JSON.stringify(log.details, null, 2)}</pre> : '—'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-        <button 
-          onClick={() => setPage(p => Math.max(1, p - 1))} 
-          disabled={page === 1}
-          style={{ padding: '0.5rem 1rem', cursor: page === 1 ? 'not-allowed' : 'pointer' }}
-        >
-          ← Previous
-        </button>
-        <span>Page {page}</span>
-        <button 
-          onClick={() => setPage(p => p + 1)} 
-          disabled={logs.length < limit}
-          style={{ padding: '0.5rem 1rem', cursor: logs.length < limit ? 'not-allowed' : 'pointer' }}
-        >
-          Next →
-        </button>
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Audit Logs</h1>
+        <p className="page-subtitle">View system activity and important actions.</p>
       </div>
 
-    </div>
+      {error && <div className="alert alert-error">{error}</div>}
+
+      <div className="table-card">
+        {/* Filter bar */}
+        <div className="filter-bar">
+          <div className="filter-group">
+            <label className="filter-label">Actor</label>
+            <input
+              className="filter-input"
+              placeholder="All Actors"
+              value={filters.actorId}
+              onChange={e => setFilters(f => ({ ...f, actorId: e.target.value }))}
+            />
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">Entity Type</label>
+            <select
+              className="filter-select"
+              value={filters.entityType}
+              onChange={e => setFilters(f => ({ ...f, entityType: e.target.value }))}
+            >
+              <option value="">All Entity Types</option>
+              <option value="stations">stations</option>
+              <option value="reconciliations">reconciliations</option>
+              <option value="dispense_transactions">dispense_transactions</option>
+              <option value="driver_complaints">driver_complaints</option>
+              <option value="vehicles">vehicles</option>
+              <option value="users">users</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">From</label>
+            <input type="date" className="filter-input" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} />
+          </div>
+          <div className="filter-group">
+            <label className="filter-label">To</label>
+            <input type="date" className="filter-input" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignSelf: 'flex-end' }}>
+            <button className="btn btn-primary btn-sm" onClick={handleApply} disabled={loading}>
+              Apply Filters
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={handleClear}>Clear</button>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Entity Type</th>
+              <th>Entity ID</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading…</td></tr>
+            ) : logs.length === 0 ? (
+              <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No audit logs found.</td></tr>
+            ) : logs.map(log => (
+              <tr key={log.id}>
+                <td className="td-muted" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>{fmt(log.occurred_at)}</td>
+                <td>
+                  {log.actor_name ? (
+                    <>
+                      <div style={{ fontWeight: 500, fontSize: '13px' }}>{log.actor_name}</div>
+                      <RolePill role={log.actor_role} />
+                    </>
+                  ) : <span className="td-muted">System</span>}
+                </td>
+                <td><ActionPill action={log.action} /></td>
+                <td className="td-muted" style={{ fontSize: '12px' }}>{log.entity_type}</td>
+                <td className="td-muted" style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                  {log.entity_id ? log.entity_id.slice(0, 12) + '…' : '—'}
+                </td>
+                <td style={{ maxWidth: 280, fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {log.metadata ? (
+                    typeof log.metadata === 'object'
+                      ? Object.entries(log.metadata).map(([k, v]) => `${k}: ${v}`).join(' · ')
+                      : String(log.metadata)
+                  ) : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="pagination">
+          <span>Showing {logs.length} of {total} logs</span>
+          {totalPages > 1 && (
+            <div className="pagination-btns">
+              <button className="page-btn" disabled={page === 1} onClick={() => fetchLogs(applied, page - 1)}>‹</button>
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
+                <button key={p} className={`page-btn${p === page ? ' active' : ''}`} onClick={() => fetchLogs(applied, p)}>{p}</button>
+              ))}
+              <button className="page-btn" disabled={page >= totalPages} onClick={() => fetchLogs(applied, page + 1)}>›</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

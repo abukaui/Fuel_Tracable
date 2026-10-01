@@ -1,48 +1,67 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import TopBar from './TopBar';
+import { useEffect, useState } from 'react';
+import Sidebar, { TopBar } from './Sidebar';
+import { apiClient } from '../api/client';
 
 export default function ProtectedRoute({ allowedRoles }) {
   const token = localStorage.getItem('token');
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!token) return <Navigate to="/login" replace />;
 
-  // Very basic decoding for UI purposes only
-  let role = null;
+  let tokenRole = null;
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    role = payload.role;
-  } catch (e) {
+    tokenRole = payload.role;
+  } catch {
     return <Navigate to="/login" replace />;
   }
 
-  if (role === 'DRIVER') {
+  if (tokenRole === 'DRIVER') {
     return (
-      <div>
-        <TopBar />
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h2>This dashboard is for government regulators, administrators, and station operators.</h2>
-          <p>Drivers should use the USSD service to access fuel services.</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ textAlign: 'center', background: 'white', padding: '3rem', borderRadius: '16px', maxWidth: '400px' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
+          <h2 style={{ marginBottom: '0.5rem' }}>Drivers use USSD</h2>
+          <p style={{ color: 'var(--text-muted)' }}>This dashboard is for regulators, admins, and operators. Drivers access services via the USSD shortcode.</p>
         </div>
       </div>
     );
   }
 
-  if (allowedRoles && !allowedRoles.includes(role)) {
+  if (allowedRoles && !allowedRoles.includes(tokenRole)) {
     return (
-      <div>
-        <TopBar />
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h2>You do not have access to this dashboard.</h2>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ textAlign: 'center', background: 'white', padding: '3rem', borderRadius: '16px' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚫</div>
+          <h2>Access Denied</h2>
+          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>You do not have permission to view this page.</p>
         </div>
       </div>
     );
   }
+
+  return <AuthenticatedLayout role={tokenRole} />;
+}
+
+function AuthenticatedLayout({ role }) {
+  const [user, setUser] = useState({ name: '', role });
+
+  useEffect(() => {
+    apiClient('/api/auth/me')
+      .then(data => {
+        if (data.user) setUser({ name: data.user.full_name, role: data.user.role });
+      })
+      .catch(() => {});
+  }, []);
 
   return (
-    <div>
-      <TopBar />
-      <Outlet />
+    <div className="app-layout">
+      <Sidebar role={user.role || role} userName={user.name} />
+      <div className="main-content">
+        <TopBar userName={user.name} role={user.role || role} />
+        <div className="page-content">
+          <Outlet />
+        </div>
+      </div>
     </div>
   );
 }
