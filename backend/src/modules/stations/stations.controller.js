@@ -13,7 +13,7 @@ async function createStation(req, res, next) {
 
 async function getAllStations(req, res, next) {
   try {
-    const stations = await service.getAllStations();
+    const stations = await service.getAllStations(req.user);
     return res.json({ stations });
   } catch (err) {
     next(err);

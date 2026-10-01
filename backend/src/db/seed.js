@@ -88,6 +88,28 @@ async function run() {
       }
     }
 
+    // ── 2.5. Station Operator user ───────────────────────────────────────────
+    const opHash = await bcrypt.hash('Operator@1234', 12);
+    
+    // Assign operator to STA-001 (first station)
+    const assignedStationId = stationIds[0].id;
+
+    const { rows: opRows } = await client.query(`
+      INSERT INTO users (full_name, phone, password_hash, role, station_id)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (phone) DO UPDATE
+        SET password_hash = EXCLUDED.password_hash, station_id = EXCLUDED.station_id
+      RETURNING id, full_name, phone, role
+    `, [
+      'Station Manager (STA-001)',
+      '+251911333333',
+      opHash,
+      'STATION_OPERATOR',
+      assignedStationId
+    ]);
+
+    console.log('[seed] ✓ Station Operator user upserted:', opRows[0].phone);
+
     // ── 3. Tanks (1 per station) ─────────────────────────────────────────────
     for (const station of stationIds) {
       // We detect duplicates by checking station_id + product_type.

@@ -73,6 +73,17 @@ async function updateStationStatus(id, status) {
   return rows[0] || null;
 }
 
+async function findStationForOperator(operatorId) {
+  const { rows } = await pool.query(
+    `SELECT s.id, s.sid, s.name, s.location, s.current_status, s.created_at
+     FROM stations s
+     JOIN users u ON u.station_id = s.id
+     WHERE u.id = $1`,
+    [operatorId]
+  );
+  return rows; // Return array to match findAllStations structure
+}
+
 module.exports = {
   createStation,
   findStationBySid,
@@ -81,4 +92,5 @@ module.exports = {
   findTanksByStationId,
   createTank,
   updateStationStatus,
+  findStationForOperator,
 };

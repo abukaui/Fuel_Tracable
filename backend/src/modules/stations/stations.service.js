@@ -20,7 +20,10 @@ async function createStation(data) {
   return station;
 }
 
-async function getAllStations() {
+async function getAllStations(user) {
+  if (user && user.role === 'STATION_OPERATOR') {
+    return await repo.findStationForOperator(user.userId);
+  }
   return await repo.findAllStations();
 }
 
