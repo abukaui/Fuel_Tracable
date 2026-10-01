@@ -15,7 +15,7 @@ async function createComplaint(driverId, { stationId, category, description }) {
   }
 
   // Get first vehicle
-  const { rows: vehicles } = await pool.query('SELECT id FROM vehicles WHERE owner_id = $1 ORDER BY created_at DESC LIMIT 1', [driverId]);
+  const { rows: vehicles } = await pool.query('SELECT id FROM vehicles WHERE owner_id = $1 LIMIT 1', [driverId]);
   if (vehicles.length === 0) {
     throw httpError('No registered vehicle found for driver', 400);
   }
