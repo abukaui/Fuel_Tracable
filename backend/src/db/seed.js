@@ -34,17 +34,35 @@ async function run() {
       RETURNING id, full_name, phone, role, created_at
     `, [
       'System Administrator',
-      '+251900000000',
+      '+251900 00 00 00',
       adminHash,
       'ADMIN',
     ]);
 
     console.log('[seed] ✓ Admin user upserted:', userRows[0].phone);
 
+    // ── 1.5. Gov Regulator user ──────────────────────────────────────────────
+    const govHash = await bcrypt.hash('Gov@1234', 12);
+
+    const { rows: govRows } = await client.query(`
+      INSERT INTO users (full_name, phone, password_hash, role)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (phone) DO UPDATE
+        SET password_hash = EXCLUDED.password_hash
+      RETURNING id, full_name, phone, role, created_at
+    `, [
+      'Ministry of Trade Regulator',
+      '+251911222333',
+      govHash,
+      'GOV_REGULATOR',
+    ]);
+
+    console.log('[seed] ✓ Gov Regulator user upserted:', govRows[0].phone);
+
     // ── 2. Stations ──────────────────────────────────────────────────────────
     const stations = [
-      { sid: 'STA-001', name: 'Central Depot Station',  location: 'Addis Ababa, Bole' },
-      { sid: 'STA-002', name: 'Northern Gate Station',  location: 'Addis Ababa, Piazza' },
+      { sid: 'STA-001', name: 'Central Depot Station', location: 'Addis Ababa, Bole' },
+      { sid: 'STA-002', name: 'Northern Gate Station', location: 'Addis Ababa, Piazza' },
     ];
 
     const stationIds = [];

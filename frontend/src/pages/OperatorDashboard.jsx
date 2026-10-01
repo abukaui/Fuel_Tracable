@@ -14,6 +14,10 @@ function DispenseBadge({ status }) {
 export default function OperatorDashboard() {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [otpForm, setOtpForm] = useState({ otpCode: '', plateNumber: '', litersDispensed: '' });
+  const [dispenseLoading, setDispenseLoading] = useState(false);
+  const [dispenseError, setDispenseError] = useState('');
+  const [dispenseSuccess, setDispenseSuccess] = useState('');
 
   useEffect(() => {
     apiClient('/api/stations')
@@ -26,6 +30,29 @@ export default function OperatorDashboard() {
   const openCount = stations.filter(s => s.current_status === 'OPEN').length;
   const suspendedCount = stations.filter(s => s.current_status === 'SUSPENDED').length;
   const outOfStockCount = stations.filter(s => s.current_status === 'OUT_OF_STOCK').length;
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setDispenseError('');
+    setDispenseSuccess('');
+    setDispenseLoading(true);
+
+    try {
+      const payload = {
+        otpCode: otpForm.otpCode,
+        plateNumber: otpForm.plateNumber,
+        litersDispensed: parseFloat(otpForm.litersDispensed)
+      };
+      await apiClient('/api/dispense/verify', { method: 'POST', body: payload });
+      setDispenseSuccess(`Successfully verified and dispensed ${payload.litersDispensed} liters!`);
+      setOtpForm({ otpCode: '', plateNumber: '', litersDispensed: '' });
+      // Optionally refresh stats if they depended on dispenses, but here we just show success
+    } catch (err) {
+      setDispenseError(err.message || 'OTP verification failed.');
+    } finally {
+      setDispenseLoading(false);
+    }
+  };
 
   if (loading) return <div className="loading-screen">⏳ Loading dashboard...</div>;
 
@@ -66,6 +93,53 @@ export default function OperatorDashboard() {
             <div className="stat-card-value" style={{ color: 'var(--red)' }}>{suspendedCount}</div>
           </div>
         </div>
+      </div>
+
+      {/* OTP Verification Form */}
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ marginBottom: '1rem' }}>Verify OTP & Dispense Fuel</h3>
+        {dispenseError && <div className="alert alert-error">{dispenseError}</div>}
+        {dispenseSuccess && <div className="alert alert-success">{dispenseSuccess}</div>}
+        
+        <form onSubmit={handleVerifyOtp} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '150px' }}>
+            <label className="form-label">OTP Code</label>
+            <input 
+              className="form-input" 
+              type="text" 
+              placeholder="e.g. 123456" 
+              value={otpForm.otpCode} 
+              onChange={e => setOtpForm({...otpForm, otpCode: e.target.value})} 
+              required 
+            />
+          </div>
+          <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '150px' }}>
+            <label className="form-label">Plate Number</label>
+            <input 
+              className="form-input" 
+              type="text" 
+              placeholder="e.g. AB-12345" 
+              value={otpForm.plateNumber} 
+              onChange={e => setOtpForm({...otpForm, plateNumber: e.target.value})} 
+              required 
+            />
+          </div>
+          <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '150px' }}>
+            <label className="form-label">Liters Dispensed</label>
+            <input 
+              className="form-input" 
+              type="number" 
+              step="0.01" 
+              placeholder="0.00" 
+              value={otpForm.litersDispensed} 
+              onChange={e => setOtpForm({...otpForm, litersDispensed: e.target.value})} 
+              required 
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={dispenseLoading} style={{ height: '38px' }}>
+            {dispenseLoading ? 'Verifying...' : 'Verify & Dispense'}
+          </button>
+        </form>
       </div>
 
       {/* Station Status Table */}
