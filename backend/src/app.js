@@ -28,6 +28,8 @@ app.use('/api/quota-policies', require('./modules/quota-policies/quota-policies.
 app.use('/api/fuel-requests', require('./modules/fuel-requests/fuel-requests.routes'));
 app.use('/api/dispense', require('./modules/dispense/dispense.routes'));
 app.use('/api/ussd', require('./modules/ussd/ussd.routes'));
+app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
+app.use('/api', require('./modules/admin/admin.routes'));
 
 // ── Global error handler ──────────────────────────────────────────────────────
 // Must be defined AFTER all routes (4-argument signature is required by Express).

@@ -111,6 +111,46 @@ async function getStatusHistory(id) {
   };
 }
 
+async function suspendStation(id, reason, actorId) {
+  if (!reason || !reason.trim()) {
+    throw httpError('Reason is required.', 400);
+  }
+  const station = await repo.findStationById(id);
+  if (!station) throw httpError('Station not found.', 404);
+
+  const updated = await repo.updateStationStatus(id, 'SUSPENDED');
+  
+  // Create audit log
+  const pool = require('../../db/pool');
+  await pool.query(
+    `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+     VALUES ($1, 'STATION_SUSPENDED', 'stations', $2, $3)`,
+    [actorId, id, JSON.stringify({ reason: reason.trim() })]
+  );
+  
+  return updated;
+}
+
+async function reinstateStation(id, reason, actorId) {
+  if (!reason || !reason.trim()) {
+    throw httpError('Reason is required.', 400);
+  }
+  const station = await repo.findStationById(id);
+  if (!station) throw httpError('Station not found.', 404);
+
+  const updated = await repo.updateStationStatus(id, 'OPEN');
+  
+  // Create audit log
+  const pool = require('../../db/pool');
+  await pool.query(
+    `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+     VALUES ($1, 'STATION_REINSTATED', 'stations', $2, $3)`,
+    [actorId, id, JSON.stringify({ reason: reason.trim() })]
+  );
+  
+  return updated;
+}
+
 module.exports = {
   createStation,
   getAllStations,
@@ -119,4 +159,6 @@ module.exports = {
   updateStatus,
   getStatusHistory,
   evaluateStockOutFlag, // exported for testing
+  suspendStation,
+  reinstateStation,
 };

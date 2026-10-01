@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 
 export default function TopBar() {
@@ -21,6 +21,26 @@ export default function TopBar() {
     navigate('/login');
   };
 
+  const renderNavLinks = () => {
+    if (user.role === 'GOV_REGULATOR' || user.role === 'ADMIN') {
+      return (
+        <nav style={{ display: 'flex', gap: '1rem', marginLeft: '2rem' }}>
+          <Link to="/stations" style={{ color: 'white', textDecoration: 'none' }}>Stations</Link>
+          <Link to="/complaints" style={{ color: 'white', textDecoration: 'none' }}>Complaints</Link>
+          <Link to="/audit-logs" style={{ color: 'white', textDecoration: 'none' }}>Audit Logs</Link>
+        </nav>
+      );
+    }
+    if (user.role === 'STATION_OPERATOR') {
+      return (
+        <nav style={{ display: 'flex', gap: '1rem', marginLeft: '2rem' }}>
+          <Link to="/operator" style={{ color: 'white', textDecoration: 'none' }}>Operator Dashboard</Link>
+        </nav>
+      );
+    }
+    return null;
+  };
+
   return (
     <header style={{ 
       display: 'flex', 
@@ -30,7 +50,10 @@ export default function TopBar() {
       color: 'white',
       alignItems: 'center'
     }}>
-      <h1 style={{ margin: 0, fontSize: '1.2rem' }}>Fuel Distribution System</h1>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <h1 style={{ margin: 0, fontSize: '1.2rem' }}>Fuel Distribution System</h1>
+        {renderNavLinks()}
+      </div>
       <div>
         {user.name ? (
           <>

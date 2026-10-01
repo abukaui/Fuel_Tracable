@@ -122,10 +122,36 @@ async function getReconciliation(id) {
   return rec;
 }
 
+async function resolveReconciliation(id, note, actorId) {
+  if (!note || !note.trim()) {
+    throw httpError('Note is required.', 400);
+  }
+  const rec = await repo.findReconciliationById(id);
+  if (!rec) throw httpError('Reconciliation not found.', 404);
+
+  const pool = require('../../db/pool');
+  const query = `
+    UPDATE reconciliations
+    SET status = 'RESOLVED', investigated_by = $1, investigation_note = $2
+    WHERE id = $3
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [actorId, note.trim(), id]);
+  
+  await pool.query(
+    `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
+     VALUES ($1, 'RECONCILIATION_RESOLVED', 'reconciliations', $2, $3)`,
+    [actorId, id, JSON.stringify({ note: note.trim() })]
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   runForStation,
   runForAllStations,
   runOnDemand,
   getStationReconciliations,
   getReconciliation,
+  resolveReconciliation,
 };

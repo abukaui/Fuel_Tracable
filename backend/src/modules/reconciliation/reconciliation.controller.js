@@ -49,8 +49,21 @@ async function getReconciliationById(req, res, next) {
   }
 }
 
+async function resolveReconciliation(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { note } = req.body;
+    const actorId = req.user.userId;
+    const reconciliation = await service.resolveReconciliation(id, note, actorId);
+    return res.json({ reconciliation });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   runReconciliation,
   getStationReconciliations,
   getReconciliationById,
+  resolveReconciliation,
 };

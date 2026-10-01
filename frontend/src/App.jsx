@@ -3,6 +3,9 @@ import Login from './pages/Login';
 import GovDashboard from './pages/GovDashboard';
 import OperatorDashboard from './pages/OperatorDashboard';
 import StationDetail from './pages/StationDetail';
+import ReconciliationDetail from './pages/ReconciliationDetail';
+import Complaints from './pages/Complaints';
+import AuditLogs from './pages/AuditLogs';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -14,6 +17,9 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={['GOV_REGULATOR', 'ADMIN']} />}>
         <Route path="/stations" element={<GovDashboard />} />
         <Route path="/stations/:id" element={<StationDetail />} />
+        <Route path="/reconciliations/:id" element={<ReconciliationDetail />} />
+        <Route path="/complaints" element={<Complaints />} />
+        <Route path="/audit-logs" element={<AuditLogs />} />
       </Route>
 
       {/* Station Operator routes */}

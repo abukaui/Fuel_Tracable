@@ -60,6 +60,30 @@ async function getStatusHistory(req, res, next) {
   }
 }
 
+async function suspendStation(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const actorId = req.user.userId;
+    const station = await service.suspendStation(id, reason, actorId);
+    return res.json({ station });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function reinstateStation(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const actorId = req.user.userId;
+    const station = await service.reinstateStation(id, reason, actorId);
+    return res.json({ station });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createStation,
   getAllStations,
@@ -67,4 +91,6 @@ module.exports = {
   createTank,
   updateStatus,
   getStatusHistory,
+  suspendStation,
+  reinstateStation,
 };

@@ -57,4 +57,10 @@ router.post(
   require('../reconciliation/reconciliation.controller').runReconciliation
 );
 
+// 9. PUT /api/stations/:id/suspend — GOV_REGULATOR only
+router.put('/:id/suspend', authorize('GOV_REGULATOR'), controller.suspendStation);
+
+// 10. PUT /api/stations/:id/reinstate — GOV_REGULATOR only
+router.put('/:id/reinstate', authorize('GOV_REGULATOR'), controller.reinstateStation);
+
 module.exports = router;

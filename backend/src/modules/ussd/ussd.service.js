@@ -41,7 +41,8 @@ async function handleDriverMenu(user, parts, level) {
     return `CON Welcome, ${user.full_name.split(' ')[0]}
 1. Register Vehicle
 2. Request Fuel
-3. Check Quota Balance`;
+3. Check Quota Balance
+4. Report Station`;
   }
 
   const option = parts[0];
@@ -89,9 +90,12 @@ async function handleDriverMenu(user, parts, level) {
       }
 
       const { rows: stations } = await pool.query(
-        'SELECT id FROM stations WHERE sid = $1', [sid]
+        'SELECT id, current_status FROM stations WHERE sid = $1', [sid]
       );
       if (stations.length === 0) return `END Station not found.`;
+      if (stations[0].current_status === 'SUSPENDED') {
+        return `END Station is currently suspended. Fuel request cannot be processed.`;
+      }
 
       try {
         const result = await fuelRequestsService.requestFuel(user.id, {
@@ -126,6 +130,38 @@ async function handleDriverMenu(user, parts, level) {
       return `END You have ${remaining.toFixed(2)} liters remaining today.`;
     } catch (err) {
       return `END Error: ${err.message}`;
+    }
+  }
+
+  else if (option === '4') {
+    if (level === 1) return `CON Enter Station ID (SID):`;
+    if (level === 2) return `CON Select problem:\n1. Refused Sale\n2. False Stock-Out Suspected\n3. Other`;
+    if (level === 3) return `CON Describe the problem:`;
+    if (level === 4) {
+      const sid = parts[1];
+      const categoryIndex = parts[2];
+      const description = parts[3];
+
+      const catMap = { '1': 'Refused Sale', '2': 'False Stock-Out Suspected', '3': 'Other' };
+      const category = catMap[categoryIndex];
+      if (!category) return `END Invalid category selection.`;
+
+      const { rows: stations } = await pool.query(
+        'SELECT id FROM stations WHERE sid = $1', [sid]
+      );
+      if (stations.length === 0) return `END Unable to file complaint. Please check the Station ID and try again.`;
+
+      const complaintsService = require('../complaints/complaints.service');
+      try {
+        await complaintsService.createComplaint(user.id, {
+          stationId: stations[0].id,
+          category,
+          description
+        });
+        return `END Complaint filed. Thank you.`;
+      } catch (err) {
+        return `END Error: ${err.message}`;
+      }
     }
   }
 

@@ -12,4 +12,7 @@ router.use(authenticate);
 // GET  /api/reconciliations/:id  — any authenticated role
 router.get('/:id', controller.getReconciliationById);
 
+// PUT /api/reconciliations/:id/resolve — GOV_REGULATOR only
+router.put('/:id/resolve', authorize('GOV_REGULATOR'), controller.resolveReconciliation);
+
 module.exports = router;
