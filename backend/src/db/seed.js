@@ -34,7 +34,7 @@ async function run() {
       RETURNING id, full_name, phone, role, created_at
     `, [
       'System Administrator',
-      '+251900 00 00 00',
+      '+251900000000',
       adminHash,
       'ADMIN',
     ]);
