@@ -1,11 +1,20 @@
 'use strict';
 
-const express   = require('express');
+const express = require('express');
 const authRoutes = require('./modules/auth/auth.routes');
 const stationRoutes = require('./modules/stations/stations.routes');
 const atgRoutes = require('./modules/atg/atg.routes');
 
 const app = express();
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
 // ── Global middleware ─────────────────────────────────────────────────────────
 app.use(express.json());
@@ -35,8 +44,8 @@ app.use('/api', require('./modules/admin/admin.routes'));
 // Must be defined AFTER all routes (4-argument signature is required by Express).
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
-  const status  = err.statusCode || 500;
-  const message = err.message    || 'Internal server error.';
+  const status = err.statusCode || 500;
+  const message = err.message || 'Internal server error.';
 
   // Log unexpected server errors but not deliberate 4xx responses.
   if (status >= 500) {

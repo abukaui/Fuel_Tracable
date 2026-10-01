@@ -80,7 +80,7 @@ export default function StationDetail() {
     try {
       await apiClient(`/api/stations/${id}/suspend`, {
         method: 'PUT',
-        body: JSON.stringify({ reason })
+        body: { reason }
       });
       alert('Station suspended successfully.');
       await fetchStationData();
@@ -95,7 +95,7 @@ export default function StationDetail() {
     try {
       await apiClient(`/api/stations/${id}/reinstate`, {
         method: 'PUT',
-        body: JSON.stringify({ reason })
+        body: { reason }
       });
       alert('Station reinstated successfully.');
       await fetchStationData();

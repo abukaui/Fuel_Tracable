@@ -8,6 +8,8 @@ export default function ReconciliationDetail() {
   const [station, setStation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState('');
 
   const [userRole, setUserRole] = useState(null);
 
@@ -186,39 +188,40 @@ export default function ReconciliationDetail() {
             const note = formData.get('note');
             if (!note || !note.trim()) return;
 
-            setLoading(true);
+            setResolving(true);
+            setResolveError('');
             try {
               const res = await apiClient(`/api/reconciliations/${id}/resolve`, {
                 method: 'PUT',
-                body: JSON.stringify({ note })
+                body: { note }
               });
               setReconciliation(res.reconciliation);
-              alert('Reconciliation resolved successfully.');
             } catch (err) {
-              alert(err.message || 'Error resolving reconciliation');
+              setResolveError(err.message || 'Error resolving reconciliation');
             } finally {
-              setLoading(false);
+              setResolving(false);
             }
           }}>
             <h4 style={{ margin: '0 0 1rem 0', color: '#666' }}>Resolution Note</h4>
+            {resolveError && <div style={{ color: 'red', marginBottom: '0.75rem' }}>{resolveError}</div>}
             <textarea 
               name="note" 
               required
               rows="4" 
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc', marginBottom: '1rem', boxSizing: 'border-box' }}
               placeholder="Reviewed the ATG readings and dispensing records..."
             ></textarea>
             <div style={{ textAlign: 'right' }}>
-              <button type="submit" disabled={loading} style={{ 
+              <button type="submit" disabled={resolving} style={{ 
                 padding: '0.75rem 2rem', 
-                backgroundColor: loading ? '#ccc' : '#0066cc', 
+                backgroundColor: resolving ? '#ccc' : '#0066cc', 
                 color: 'white', 
                 border: 'none', 
                 borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: resolving ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold'
               }}>
-                {loading ? 'Resolving...' : 'Resolve Reconciliation'}
+                {resolving ? 'Resolving...' : 'Resolve Reconciliation'}
               </button>
             </div>
           </form>

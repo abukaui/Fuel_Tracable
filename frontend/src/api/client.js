@@ -21,7 +21,8 @@ export async function apiClient(endpoint, { body, ...customConfig } = {}) {
   };
 
   if (body) {
-    config.body = JSON.stringify(body);
+    // Accept pre-stringified body or plain object
+    config.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
 
   const response = await fetch(`${BASE_URL}${endpoint}`, config);
