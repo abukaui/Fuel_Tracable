@@ -25,7 +25,21 @@ async function getDispenseById(req, res, next) {
   }
 }
 
+async function previewDispense(req, res, next) {
+  try {
+    const { otpCode } = req.body;
+    const preview = await service.previewDispense(otpCode);
+    return res.json({ preview });
+  } catch (err) {
+    if (err.code && err.statusCode) {
+      err.body = { error: err.message, code: err.code };
+    }
+    next(err);
+  }
+}
+
 module.exports = {
   verifyAndDispense,
   getDispenseById,
+  previewDispense,
 };

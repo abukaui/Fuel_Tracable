@@ -17,6 +17,21 @@ const verifySchema = z.object({
   }),
 });
 
+const previewSchema = z.object({
+  body: z.object({
+    otpCode: z.string().min(1),
+  }),
+});
+
+// POST /api/dispense/preview
+router.post(
+  '/preview',
+  authenticate,
+  authorize('STATION_OPERATOR', 'ADMIN'),
+  validate(previewSchema),
+  controller.previewDispense
+);
+
 // POST /api/dispense/verify  — STATION_OPERATOR only
 router.post(
   '/verify',
