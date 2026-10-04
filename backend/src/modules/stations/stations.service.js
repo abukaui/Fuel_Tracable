@@ -41,10 +41,15 @@ async function createTank(stationId, data) {
   if (!station) {
     throw httpError('Station not found.', 404);
   }
+  const productType = data.productType || 'PETROL';
+  const existingTanks = await repo.findTanksByStationId(stationId);
+  if (existingTanks.some(t => t.product_type === productType)) {
+    throw httpError(`A ${productType} tank already exists for this station.`, 409);
+  }
   const tank = await repo.createTank({
     stationId,
     capacityLiters: data.capacityLiters,
-    productType: data.productType || 'PETROL',
+    productType,
   });
   return tank;
 }
@@ -82,6 +87,9 @@ async function updateStatus(id, { status }) {
   const station = await repo.findStationById(id);
   if (!station) {
     throw httpError('Station not found.', 404);
+  }
+  if (station.current_status === status) {
+    return station;
   }
   const updatedStation = await repo.updateStationStatus(id, status);
 
@@ -121,6 +129,10 @@ async function suspendStation(id, reason, actorId) {
   const station = await repo.findStationById(id);
   if (!station) throw httpError('Station not found.', 404);
 
+  if (station.current_status === 'SUSPENDED') {
+    return station;
+  }
+
   const updated = await repo.updateStationStatus(id, 'SUSPENDED');
   
   // Create audit log
@@ -140,6 +152,10 @@ async function reinstateStation(id, reason, actorId) {
   }
   const station = await repo.findStationById(id);
   if (!station) throw httpError('Station not found.', 404);
+
+  if (station.current_status === 'OPEN') {
+    return station;
+  }
 
   const updated = await repo.updateStationStatus(id, 'OPEN');
   

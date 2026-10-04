@@ -129,6 +129,10 @@ async function resolveReconciliation(id, note, actorId) {
   const rec = await repo.findReconciliationById(id);
   if (!rec) throw httpError('Reconciliation not found.', 404);
 
+  if (rec.status === 'RESOLVED') {
+    return rec;
+  }
+
   const pool = require('../../db/pool');
   const query = `
     UPDATE reconciliations

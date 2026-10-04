@@ -21,6 +21,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+const idempotencyMiddleware = require('./middleware/idempotency');
+app.use(idempotencyMiddleware);
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 /** Liveness probe — no DB call, no auth required */

@@ -45,6 +45,10 @@ async function updateStatus(id, status) {
     throw httpError('Complaint not found', 404);
   }
 
+  if (complaint.status === status) {
+    return complaint;
+  }
+
   if (complaint.status !== 'OPEN') {
     throw httpError('Can only update status of OPEN complaints', 400);
   }

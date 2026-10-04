@@ -71,23 +71,25 @@ async function handleDriverMenu(user, parts, level) {
   }
 
   else if (option === '2') {
-    const { rows: userVehicles } = await pool.query(
-      'SELECT id FROM vehicles WHERE owner_id = $1 LIMIT 1', [user.id]
-    );
-    if (userVehicles.length === 0) {
-      return `END You must register a vehicle first. Dial again and select 1.`;
-    }
-    const vehicleId = userVehicles[0].id;
-
-    if (level === 1) return `CON Enter Station ID (SID):`;
-    if (level === 2) return `CON Enter requested Liters:`;
-    if (level === 3) {
-      const sid             = parts[1];
-      const requestedLiters = parseFloat(parts[2]);
+    if (level === 1) return `CON Enter Vehicle Plate Number:`;
+    if (level === 2) return `CON Enter Station ID (SID):`;
+    if (level === 3) return `CON Enter requested Liters:`;
+    if (level === 4) {
+      const plateNumber     = parts[1];
+      const sid             = parts[2];
+      const requestedLiters = parseFloat(parts[3]);
 
       if (isNaN(requestedLiters) || requestedLiters <= 0) {
         return `END Invalid liters amount.`;
       }
+
+      const { rows: userVehicles } = await pool.query(
+        'SELECT id FROM vehicles WHERE owner_id = $1 AND UPPER(plate_number) = UPPER($2)', [user.id, plateNumber.trim()]
+      );
+      if (userVehicles.length === 0) {
+        return `END Vehicle not found or not owned by you.`;
+      }
+      const vehicleId = userVehicles[0].id;
 
       const { rows: stations } = await pool.query(
         'SELECT id, current_status FROM stations WHERE sid = $1', [sid]
@@ -111,25 +113,29 @@ async function handleDriverMenu(user, parts, level) {
   }
 
   else if (option === '3') {
-    const { rows: userVehicles } = await pool.query(
-      'SELECT id FROM vehicles WHERE owner_id = $1 LIMIT 1', [user.id]
-    );
-    if (userVehicles.length === 0) {
-      return `END You must register a vehicle first. Dial again and select 1.`;
-    }
-    const vehicleId = userVehicles[0].id;
-
-    try {
-      const vehicle = await fuelRequestsRepo.getVehicleWithPolicy(vehicleId);
-      if (!vehicle || !vehicle.daily_limit_liters) {
-        return `END No quota policy assigned to your vehicle type yet.`;
+    if (level === 1) return `CON Enter Vehicle Plate Number:`;
+    if (level === 2) {
+      const plateNumber = parts[1];
+      const { rows: userVehicles } = await pool.query(
+        'SELECT id FROM vehicles WHERE owner_id = $1 AND UPPER(plate_number) = UPPER($2)', [user.id, plateNumber.trim()]
+      );
+      if (userVehicles.length === 0) {
+        return `END Vehicle not found or not owned by you.`;
       }
-      const dailyLimit = parseFloat(vehicle.daily_limit_liters);
-      const usedLiters = await fuelRequestsRepo.getUsedLitersToday(vehicleId);
-      const remaining  = Math.max(0, dailyLimit - usedLiters);
-      return `END You have ${remaining.toFixed(2)} liters remaining today.`;
-    } catch (err) {
-      return `END Error: ${err.message}`;
+      const vehicleId = userVehicles[0].id;
+
+      try {
+        const vehicle = await fuelRequestsRepo.getVehicleWithPolicy(vehicleId);
+        if (!vehicle || !vehicle.daily_limit_liters) {
+          return `END No quota policy assigned to your vehicle type yet.`;
+        }
+        const dailyLimit = parseFloat(vehicle.daily_limit_liters);
+        const usedLiters = await fuelRequestsRepo.getUsedLitersToday(vehicleId);
+        const remaining  = Math.max(0, dailyLimit - usedLiters);
+        return `END You have ${remaining.toFixed(2)} liters remaining today.`;
+      } catch (err) {
+        return `END Error: ${err.message}`;
+      }
     }
   }
 
