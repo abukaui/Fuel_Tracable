@@ -61,6 +61,7 @@ const icons = {
 
 export default function Sidebar({ role, userName }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const initials = userName
     ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '?';
@@ -71,6 +72,10 @@ export default function Sidebar({ role, userName }) {
   };
 
   const dashboardLabel = role === 'STATION_OPERATOR' ? 'Fuel Distribution System' : 'Government Dashboard';
+
+  // Check if current path starts with a given prefix for sub-page highlighting
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isStationsActive = location.pathname.startsWith('/stations') || location.pathname.startsWith('/reconciliations');
 
   return (
     <aside className="sidebar">
@@ -91,8 +96,13 @@ export default function Sidebar({ role, userName }) {
           </>
         ) : (
           <>
-            <NavLink to="/stations" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-              {icons.dashboard} Dashboard
+            <div className="sidebar-section-label">Overview</div>
+            <NavLink to="/stations" end className={() => `nav-item${isStationsActive ? ' active' : ''}`}>
+              {icons.stations} Stations
+            </NavLink>
+            <div className="sidebar-section-label">Monitoring</div>
+            <NavLink to="/reconciliations" end className={({ isActive }) => `nav-item${isActive || location.pathname.startsWith('/reconciliations/') ? ' active' : ''}`}>
+              {icons.reconciliations} Reconciliations
             </NavLink>
             <NavLink to="/complaints" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
               {icons.complaints} Complaints
@@ -109,7 +119,7 @@ export default function Sidebar({ role, userName }) {
       <div className="sidebar-bottom">
         <button className="nav-item" style={{ color: '#94a3b8' }}>
           {icons.profile}
-          <span style={{ flex: 1 }}>Profile</span>
+          <span style={{ flex: 1 }}>{userName || 'Profile'}</span>
         </button>
         <button className="nav-item" onClick={handleLogout} style={{ color: '#94a3b8' }}>
           {icons.logout}

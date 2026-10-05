@@ -9,6 +9,9 @@ const router = Router();
 
 router.use(authenticate);
 
+// GET /api/reconciliations — all reconciliations (GOV_REGULATOR, ADMIN)
+router.get('/', authorize('GOV_REGULATOR', 'ADMIN'), controller.getAllReconciliations);
+
 // GET  /api/reconciliations/:id  — any authenticated role
 router.get('/:id', controller.getReconciliationById);
 

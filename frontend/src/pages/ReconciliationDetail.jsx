@@ -21,17 +21,19 @@ export default function ReconciliationDetail() {
 
   const fetchData = async () => {
     try {
-      const me = await apiClient('/api/auth/me');
+      const [me, d] = await Promise.all([
+        apiClient('/api/auth/me'),
+        apiClient(`/api/reconciliations/${id}`),
+      ]);
       if (me?.user) setUserRole(me.user.role);
-      const d = await apiClient(`/api/reconciliations/${id}`);
       setRec(d.reconciliation);
       if (d.reconciliation?.station_id) {
-        const sd = await apiClient(`/api/stations/${d.reconciliation.station_id}`);
+        const [sd, dd] = await Promise.all([
+          apiClient(`/api/stations/${d.reconciliation.station_id}`),
+          apiClient(`/api/stations/${d.reconciliation.station_id}/dispenses`).catch(() => ({ dispenses: [] })),
+        ]);
         setStation(sd.station);
-        try {
-          const dd = await apiClient(`/api/stations/${d.reconciliation.station_id}/dispenses`);
-          setDispenses(dd.dispenses || []);
-        } catch {}
+        setDispenses(dd.dispenses || []);
       }
     } catch (err) {
       setError(err.message || 'Failed to load.');

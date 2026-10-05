@@ -28,27 +28,34 @@ export default function StationDetail() {
 
   const fetchData = async () => {
     try {
-      const me = await apiClient('/api/auth/me');
+      // Fire all independent requests in parallel
+      const [me, data, rData, dData] = await Promise.all([
+        apiClient('/api/auth/me'),
+        apiClient(`/api/stations/${id}`),
+        apiClient(`/api/stations/${id}/reconciliations`),
+        apiClient(`/api/stations/${id}/dispenses`).catch(() => ({ dispenses: [] })),
+      ]);
+
       if (me?.user) setUserRole(me.user.role);
-      const data = await apiClient(`/api/stations/${id}`);
       setStation(data.station);
-      setTanks(data.station.tanks || []);
-      if (data.station.tanks) {
+      const tankList = data.station.tanks || [];
+      setTanks(tankList);
+      setReconciliations(rData.reconciliations || []);
+      setDispenses(dData.dispenses || []);
+
+      // Fetch all tank readings in parallel
+      if (tankList.length > 0) {
+        const readingResults = await Promise.all(
+          tankList.map(t =>
+            apiClient(`/api/tanks/${t.id}/readings/latest`).catch(() => null)
+          )
+        );
         const reads = {};
-        for (const t of data.station.tanks) {
-          try {
-            const rd = await apiClient(`/api/tanks/${t.id}/readings/latest`);
-            if (rd.reading) reads[t.id] = rd.reading;
-          } catch {}
-        }
+        tankList.forEach((t, i) => {
+          if (readingResults[i]?.reading) reads[t.id] = readingResults[i].reading;
+        });
         setReadings(reads);
       }
-      const rData = await apiClient(`/api/stations/${id}/reconciliations`);
-      setReconciliations(rData.reconciliations || []);
-      try {
-        const dData = await apiClient(`/api/stations/${id}/dispenses`);
-        setDispenses(dData.dispenses || []);
-      } catch {}
     } catch (err) {
       setError(err.message || 'Failed to load station.');
     } finally {
