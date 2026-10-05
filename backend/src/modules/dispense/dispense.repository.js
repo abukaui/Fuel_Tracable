@@ -113,9 +113,39 @@ async function recordDispenseTransaction({ fuelRequestId, verifiedBy, litersDisp
   }
 }
 
+/**
+ * Returns all dispense transactions for a given station, enriched with
+ * vehicle plate_number, vehicle_type, fuel_type, and requested_liters.
+ */
+async function findDispensesByStationId(stationId) {
+  const query = `
+    SELECT
+      dt.id,
+      dt.fuel_request_id,
+      dt.verified_by,
+      dt.liters_dispensed,
+      dt.plate_verified,
+      dt.occurred_at,
+      fr.requested_liters,
+      fr.station_id,
+      v.plate_number,
+      v.vehicle_type,
+      v.fuel_type
+    FROM dispense_transactions dt
+    JOIN fuel_requests fr ON fr.id = dt.fuel_request_id
+    JOIN vehicles v ON v.id = fr.vehicle_id
+    WHERE fr.station_id = $1
+    ORDER BY dt.occurred_at DESC
+    LIMIT 200;
+  `;
+  const result = await pool.query(query, [stationId]);
+  return result.rows;
+}
+
 module.exports = {
   findPendingRequests,
   findRecentExpiredRequest,
   findDispenseById,
+  findDispensesByStationId,
   recordDispenseTransaction,
 };

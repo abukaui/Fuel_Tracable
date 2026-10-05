@@ -18,6 +18,7 @@ export default function StationDetail() {
   const [tanks, setTanks] = useState([]);
   const [readings, setReadings] = useState({});
   const [reconciliations, setReconciliations] = useState([]);
+  const [dispenses, setDispenses] = useState([]);
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reconLoading, setReconLoading] = useState(false);
@@ -44,6 +45,10 @@ export default function StationDetail() {
       }
       const rData = await apiClient(`/api/stations/${id}/reconciliations`);
       setReconciliations(rData.reconciliations || []);
+      try {
+        const dData = await apiClient(`/api/stations/${id}/dispenses`);
+        setDispenses(dData.dispenses || []);
+      } catch {}
     } catch (err) {
       setError(err.message || 'Failed to load station.');
     } finally {
@@ -141,6 +146,40 @@ export default function StationDetail() {
             </div>
           );
         })}
+      </div>
+
+      {/* Dispensing History */}
+      <div className="table-card" style={{ marginBottom: '2rem' }}>
+        <div className="table-header">
+          <span className="table-title">Dispensing History</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{dispenses.length} transaction{dispenses.length !== 1 ? 's' : ''}</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Plate Number</th>
+              <th>Vehicle Type</th>
+              <th>Fuel Type</th>
+              <th style={{ textAlign: 'right' }}>Requested</th>
+              <th style={{ textAlign: 'right' }}>Dispensed</th>
+              <th>Date / Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dispenses.length === 0 ? (
+              <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No dispense transactions yet.</td></tr>
+            ) : dispenses.map(d => (
+              <tr key={d.id}>
+                <td className="td-bold">{d.plate_number}</td>
+                <td>{d.vehicle_type || '—'}</td>
+                <td>{d.fuel_type || '—'}</td>
+                <td style={{ textAlign: 'right' }}>{parseFloat(d.requested_liters).toFixed(1)} L</td>
+                <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--primary)' }}>{parseFloat(d.liters_dispensed).toFixed(1)} L</td>
+                <td className="td-muted" style={{ fontSize: '12px' }}>{fmt(d.occurred_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Reconciliation */}

@@ -38,8 +38,20 @@ async function previewDispense(req, res, next) {
   }
 }
 
+async function getStationDispenses(req, res, next) {
+  try {
+    const { id } = req.params;
+    const repo = require('./dispense.repository');
+    const dispenses = await repo.findDispensesByStationId(id);
+    return res.json({ dispenses });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   verifyAndDispense,
   getDispenseById,
   previewDispense,
+  getStationDispenses,
 };
