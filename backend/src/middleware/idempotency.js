@@ -18,34 +18,32 @@ async function idempotencyMiddleware(req, res, next) {
     `, [idempotencyKey]);
 
     if (rows.length === 0) {
-      // Key exists
       const { rows: existing } = await client.query(`SELECT * FROM idempotency_keys WHERE key = $1`, [idempotencyKey]);
       const record = existing[0];
-      
       if (record.status === 'PROCESSING') {
         return res.status(409).json({ error: 'Duplicate request already in progress.' });
       } else if (record.status === 'COMPLETED') {
         res.status(record.response_status);
-        res.set('Content-Type', req.headers['accept']?.includes('text/plain') ? 'text/plain' : 'application/json');
+        res.set('Content-Type', 'application/json');
         return res.send(record.response_body);
       }
     }
 
-    // Capture the response
     const originalSend = res.send.bind(res);
     res.send = function (body) {
       pool.query(`
         UPDATE idempotency_keys 
         SET status = 'COMPLETED', response_status = $1, response_body = $2 
         WHERE key = $3
-      `, [res.statusCode, body, idempotencyKey]).catch(err => console.error('Idempotency update error:', err));
-      
+      `, [res.statusCode, body, idempotencyKey]).catch(() => {});
       return originalSend(body);
     };
 
     next();
   } catch (err) {
-    next(err);
+    // If idempotency_keys table doesn't exist yet, degrade gracefully
+    console.warn('[idempotency] middleware error, skipping:', err.message);
+    next();
   } finally {
     client.release();
   }

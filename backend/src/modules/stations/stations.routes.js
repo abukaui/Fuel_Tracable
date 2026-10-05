@@ -10,19 +10,25 @@ const validate = require('../../middleware/validate');
 const router = Router();
 
 const createStationSchema = z.object({
-  sid: z.string().min(1, 'sid is required'),
-  name: z.string().min(1, 'name is required'),
-  location: z.string().optional(),
+  body: z.object({
+    sid: z.string().min(1, 'sid is required'),
+    name: z.string().min(1, 'name is required'),
+    location: z.string().optional(),
+  }),
 });
 
 const createTankSchema = z.object({
-  capacityLiters: z.number().positive('capacityLiters must be a positive number'),
-  productType: z.string().min(1).default('PETROL'),
+  body: z.object({
+    capacityLiters: z.number().positive('capacityLiters must be a positive number'),
+    productType: z.string().min(1).default('PETROL'),
+  }),
 });
 
 const updateStatusSchema = z.object({
-  status: z.enum(['OPEN', 'CLOSED', 'OUT_OF_STOCK'], {
-    errorMap: () => ({ message: 'Status must be one of OPEN, CLOSED, or OUT_OF_STOCK' })
+  body: z.object({
+    status: z.enum(['OPEN', 'CLOSED', 'OUT_OF_STOCK'], {
+      errorMap: () => ({ message: 'Status must be one of OPEN, CLOSED, or OUT_OF_STOCK' })
+    }),
   }),
 });
 
