@@ -87,7 +87,7 @@ export default function Login() {
                   border: 'none',
                   background: 'transparent',
                   cursor: 'pointer',
-                  fontSize: '16px',
+                  fontSize: '13px',
                   padding: '4px'
                 }}
               >
