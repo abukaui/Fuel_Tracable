@@ -29,7 +29,7 @@ export default function App() {
 
       {/* Catch-all */}
       <Route element={<ProtectedRoute />}>
-        <Route path="*" element={<Navigate to="/stations" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
     </Routes>
   );
