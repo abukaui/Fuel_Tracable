@@ -74,9 +74,8 @@ export default function Sidebar({ role, userName }) {
 
   const dashboardLabel = role === 'STATION_OPERATOR' ? 'Fuel Distribution System' : 'Government Dashboard';
 
-  // Check if current path starts with a given prefix for sub-page highlighting
-  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
-  const isStationsActive = location.pathname.startsWith('/stations') || location.pathname.startsWith('/reconciliations');
+  // Check if current path starts with /stations (e.g. /stations/:id)
+  const isStationsActive = location.pathname === '/stations' || location.pathname.startsWith('/stations/');
 
   return (
     <aside className="sidebar">
@@ -98,11 +97,11 @@ export default function Sidebar({ role, userName }) {
         ) : (
           <>
             <div className="sidebar-section-label">Overview</div>
-            <NavLink to="/stations" end className={() => `nav-item${isStationsActive ? ' active' : ''}`}>
+            <NavLink to="/stations" className={() => `nav-item${isStationsActive ? ' active' : ''}`}>
               {icons.stations} Stations
             </NavLink>
             <div className="sidebar-section-label">Monitoring</div>
-            <NavLink to="/reconciliations" end className={({ isActive }) => `nav-item${isActive || location.pathname.startsWith('/reconciliations/') ? ' active' : ''}`}>
+            <NavLink to="/reconciliations" className={({ isActive }) => `nav-item${isActive || location.pathname.startsWith('/reconciliations/') ? ' active' : ''}`}>
               {icons.reconciliations} Reconciliations
             </NavLink>
             <NavLink to="/complaints" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
@@ -118,41 +117,17 @@ export default function Sidebar({ role, userName }) {
       </nav>
 
       <div className="sidebar-bottom">
-        <button className="nav-item" style={{ color: '#94a3b8' }}>
+        <div className="nav-item" style={{ color: '#94a3b8', cursor: 'default' }}>
           {icons.profile}
-          <span style={{ flex: 1 }}>{userName || 'Profile'}</span>
-        </button>
-        <button className="nav-item" onClick={handleLogout} style={{ color: '#94a3b8' }}>
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {userName || 'User'}
+          </span>
+        </div>
+        <button className="nav-item" onClick={handleLogout} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
           {icons.logout}
           <span style={{ flex: 1 }}>Logout</span>
         </button>
       </div>
     </aside>
-  );
-}
-
-export function TopBar({ userName, role }) {
-  const initials = userName
-    ? userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : '?';
-
-  const roleLabel = {
-    GOV_REGULATOR: 'Gov Regulator',
-    ADMIN: 'Admin',
-    STATION_OPERATOR: 'Station Operator',
-    DRIVER: 'Driver',
-  }[role] || role;
-
-  return (
-    <header className="topbar">
-      <span className="topbar-bell">{icons.bell}</span>
-      <div className="topbar-user">
-        <div className="topbar-avatar">{initials}</div>
-        <span style={{ fontWeight: 500, color: 'var(--text)' }}>{roleLabel}</span>
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14" style={{ color: 'var(--text-muted)' }}>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-    </header>
   );
 }

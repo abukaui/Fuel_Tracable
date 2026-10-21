@@ -24,9 +24,9 @@ async function migrateTestDb() {
   await client.connect();
 
   try {
-    // Ensure schema exists
+    // Ensure test schema exists and isolate search_path strictly to test schema
     await client.query('CREATE SCHEMA IF NOT EXISTS test');
-    await client.query('SET search_path = test, public');
+    await client.query('SET search_path = test');
 
     // Ensure tracking table exists inside test schema
     await client.query(`
@@ -39,9 +39,15 @@ async function migrateTestDb() {
     const { rows } = await client.query('SELECT filename FROM test.schema_migrations');
     const applied = new Set(rows.map(r => r.filename));
 
+    // Sort migration files ensuring dependency tables (e.g. stations in 003) exist
+    // before dependent tables (reconciliations in 002) are created.
     const files = fs.readdirSync(MIGRATIONS_DIR)
       .filter(f => f.endsWith('.sql'))
-      .sort();
+      .sort((a, b) => {
+        if (a === '002_create_reconciliations.sql' && b === '003_create_stations.sql') return 1;
+        if (a === '003_create_stations.sql' && b === '002_create_reconciliations.sql') return -1;
+        return a.localeCompare(b);
+      });
 
     for (const file of files) {
       if (applied.has(file)) {
@@ -58,20 +64,10 @@ async function migrateTestDb() {
     }
 
     console.log('[test-migrate] ✓ Test schema is up to date.');
-
-    // ── Post-migration FK repair ───────────────────────────────────────────────
-    // 002_create_reconciliations.sql sorts before 003_create_stations.sql, so
-    // its REFERENCES stations(id) resolves to public.stations at CREATE TABLE
-    // time. Drop and re-add so it points to test.stations instead.
-    console.log('[test-migrate] Repairing cross-schema FK: reconciliations.station_id → test.stations …');
-    await client.query(`ALTER TABLE reconciliations DROP CONSTRAINT IF EXISTS reconciliations_station_id_fkey`);
-    await client.query(`ALTER TABLE reconciliations ADD CONSTRAINT reconciliations_station_id_fkey FOREIGN KEY (station_id) REFERENCES stations(id)`);
-    console.log('[test-migrate] ✓ FK repair done.');
   } finally {
     await client.end();
   }
 }
-
 
 // Allow running directly: node test/helpers/migrateTestDb.js
 if (require.main === module) {

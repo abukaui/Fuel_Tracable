@@ -1,9 +1,11 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import Sidebar, { TopBar } from './Sidebar';
+import Sidebar from './Sidebar';
+import TopBar from './TopBar';
 import { apiClient } from '../api/client';
 
 export default function ProtectedRoute({ allowedRoles }) {
+  const navigate = useNavigate();
   const token = localStorage.getItem('token');
   if (!token) return <Navigate to="/login" replace />;
 
@@ -12,28 +14,45 @@ export default function ProtectedRoute({ allowedRoles }) {
     const payload = JSON.parse(atob(token.split('.')[1]));
     tokenRole = payload.role;
   } catch {
+    localStorage.removeItem('token');
     return <Navigate to="/login" replace />;
   }
 
-  if (tokenRole === 'DRIVER') {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ textAlign: 'center', background: 'white', padding: '3rem', borderRadius: '16px', maxWidth: '400px' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
-          <h2 style={{ marginBottom: '0.5rem' }}>Drivers use USSD</h2>
-          <p style={{ color: 'var(--text-muted)' }}>This dashboard is for regulators, admins, and operators. Drivers access services via the USSD shortcode.</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Clear role restriction screen for DRIVER or STATION_OPERATOR attempting gov dashboard
   if (allowedRoles && !allowedRoles.includes(tokenRole)) {
+    const isOperator = tokenRole === 'STATION_OPERATOR';
+    const isDriver = tokenRole === 'DRIVER';
+
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ textAlign: 'center', background: 'white', padding: '3rem', borderRadius: '16px' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚫</div>
-          <h2>Access Denied</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>You do not have permission to view this page.</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: '1rem' }}>
+        <div style={{ textAlign: 'center', background: 'white', padding: '3rem 2rem', borderRadius: '16px', maxWidth: '440px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>
+            {isDriver ? '📱' : '⛽'}
+          </div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text)' }}>
+            Dashboard Restricted
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+            {isDriver
+              ? 'This dashboard is for fuel regulators and administrators. Drivers access fuel requests and quotas via the USSD mobile shortcode.'
+              : 'This dashboard is for government regulators and administrators. Station operators manage pump dispenses in the Operator Terminal.'}
+          </p>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            {isOperator && (
+              <button className="btn btn-primary" onClick={() => navigate('/operator')}>
+                Go to Operator Terminal
+              </button>
+            )}
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                localStorage.removeItem('token');
+                navigate('/login');
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -58,9 +77,9 @@ function AuthenticatedLayout({ role }) {
       <Sidebar role={user.role || role} userName={user.name} />
       <div className="main-content">
         <TopBar userName={user.name} role={user.role || role} />
-        <div className="page-content">
+        <main className="page-content">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );

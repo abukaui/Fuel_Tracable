@@ -48,27 +48,31 @@ async function simulateOneTank(tank) {
   if (currentVolume < capacity * 0.15) {
     nextVolume = capacity * 0.9;
   } else {
-    // Query verified sales for this station and product_type since last reading
+    // Query verified sales for this station since last reading (matches reconciliation SQL)
     const { rows: salesRows } = await pool.query(
       `SELECT COALESCE(SUM(dt.liters_dispensed), 0) AS sold_liters
        FROM dispense_transactions dt
        JOIN fuel_requests fr ON fr.id = dt.fuel_request_id
-       JOIN vehicles v ON v.id = fr.vehicle_id
        WHERE fr.station_id = $1
-         AND dt.occurred_at > $2
-         AND (v.fuel_type = $3 OR $3 IS NULL)`,
-      [tank.station_id, lastRecordedAt, tank.product_type]
+         AND dt.occurred_at > $2`,
+      [tank.station_id, lastRecordedAt]
     );
 
     const totalSold = parseFloat(salesRows[0].sold_liters) || 0;
 
-    // Check if station has multiple tanks for this product type to split sold volume
+    // For the demo, stations should have one tank.
+    // Check if station has multiple tanks and log a warning if so.
     const { rows: countRows } = await pool.query(
-      'SELECT COUNT(*) AS count FROM tanks WHERE station_id = $1 AND product_type = $2',
-      [tank.station_id, tank.product_type]
+      'SELECT COUNT(*) AS count FROM tanks WHERE station_id = $1',
+      [tank.station_id]
     );
-    const tankCount = parseInt(countRows[0]?.count || '1', 10) || 1;
-    const soldForTank = totalSold / tankCount;
+    const stationTankCount = parseInt(countRows[0]?.count || '1', 10) || 1;
+    if (stationTankCount > 1) {
+      console.warn(
+        `[atgSimulator] Warning: Station ${tank.station_id} has ${stationTankCount} tanks. For the demo, stations should have one tank.`
+      );
+    }
+    const soldForTank = totalSold / stationTankCount;
 
     // Sensor noise: approximately +/- 3 liters
     const sensorNoise = Math.random() * 6 - 3;
