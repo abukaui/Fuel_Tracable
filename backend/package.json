@@ -10,7 +10,7 @@
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js",
     "test:db:setup": "node test/helpers/migrateTestDb.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand --forceExit"
+    "test": "cross-env NODE_ENV=test jest --runInBand"
   },
   "engines": {
     "node": ">=18.0.0"
