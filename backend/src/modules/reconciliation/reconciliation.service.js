@@ -6,9 +6,10 @@
  * Core logic shared by both the scheduled job and the on-demand endpoint.
  *
  *  runForStation(stationId, periodStart, periodEnd)
- *    → computes tank_volume_delta + verified_dispense_volume → determines
- *      status (OK / FLAGGED / INCOMPLETE) → inserts a reconciliations row
- *    → returns the created row
+ *    → computes tank drops (tank_outflow) + verified_dispense_volume
+ *    → determines status (OK / FLAGGED / INCOMPLETE)
+ *    → upserts a reconciliations row
+ *    → returns the created/updated row
  */
 
 const repo   = require('./reconciliation.repository');
@@ -26,27 +27,33 @@ function httpError(message, statusCode) {
  * @param {string} stationId
  * @param {Date}   periodStart
  * @param {Date}   periodEnd
- * @returns {Promise<object>} The created reconciliations row
+ * @returns {Promise<object>} The reconciliations row
  */
 async function runForStation(stationId, periodStart, periodEnd) {
-  // 1. Tank volume delta (sum of latest - earliest reading per tank)
-  const { delta, hasData } = await repo.getTankVolumeDelta(stationId, periodStart, periodEnd);
+  // 1. Calculate tank telemetry data (genuine outflow drops and signed delta)
+  const tankData = await repo.getTankReconciliationData(stationId, periodStart, periodEnd);
 
-  // 2. Verified dispense volume
-  const verifiedDispenseVolume = await repo.getVerifiedDispenseVolume(stationId, periodStart, periodEnd);
-
-  // 3. Determine status and variance
   let status;
   let varianceLiters = null;
+  let verifiedDispenseVolume = null;
+  let signedDelta = null;
 
-  if (!hasData) {
-    // No ATG readings in this period — cannot compute a meaningful result
+  if (!tankData.hasEnoughReadings) {
+    // Fewer than 2 readings in the window — cannot compute a meaningful result
     status = 'INCOMPLETE';
   } else {
-    // Tank delta is negative when fuel left (sold). We want the absolute drop.
-    const absoluteDrop = Math.abs(delta);
-    // Variance = fuel that left the tank but has no matching sale record
-    varianceLiters = absoluteDrop - verifiedDispenseVolume;
+    signedDelta = tankData.signedDelta;
+
+    // 2. Verified dispense volume covering the same time span as the readings used
+    verifiedDispenseVolume = await repo.getVerifiedDispenseVolume(
+      stationId,
+      tankData.minReadingTime,
+      tankData.maxReadingTime
+    );
+
+    // 3. Variance = GREATEST(tank_outflow - verified_dispense_volume, 0)
+    // Only genuine drops are counted in tank_outflow (refills/increases are ignored).
+    varianceLiters = Math.max(tankData.tankOutflow - verifiedDispenseVolume, 0);
 
     if (varianceLiters > config.reconciliationToleranceLiters) {
       status = 'FLAGGED';
@@ -55,24 +62,25 @@ async function runForStation(stationId, periodStart, periodEnd) {
     }
   }
 
-  // 4. Insert row (each run creates its own row — history is never overwritten)
+  // 4. Upsert row (unique index on station_id, period_start, period_end ensures idempotency)
   const row = await repo.createReconciliation({
     stationId,
     periodStart,
     periodEnd,
-    tankVolumeDelta:        delta,
-    verifiedDispenseVolume: hasData ? verifiedDispenseVolume : null,
+    tankVolumeDelta:        signedDelta,
+    verifiedDispenseVolume,
     varianceLiters,
-    stockOutFlag:           false,  // stock-out flag is set by the separate updateStatus path
+    stockOutFlag:           false,
     status,
   });
 
   console.log(
     `[reconciliation] station=${stationId} ` +
     `period=${periodStart.toISOString()}→${periodEnd.toISOString()} ` +
-    `delta=${delta?.toFixed(2) ?? 'N/A'} ` +
-    `dispensed=${hasData ? verifiedDispenseVolume.toFixed(2) : 'N/A'} ` +
-    `variance=${varianceLiters?.toFixed(2) ?? 'N/A'} ` +
+    `outflow=${tankData.tankOutflow?.toFixed(2) ?? 'N/A'} ` +
+    `delta=${signedDelta?.toFixed(2) ?? 'N/A'} ` +
+    `dispensed=${verifiedDispenseVolume != null ? verifiedDispenseVolume.toFixed(2) : 'N/A'} ` +
+    `variance=${varianceLiters != null ? varianceLiters.toFixed(2) : 'N/A'} ` +
     `status=${status}`
   );
 
@@ -84,9 +92,6 @@ async function runForStation(stationId, periodStart, periodEnd) {
  *
  * Iterates every station in the DB and runs reconciliation for the period
  * [periodStart, periodEnd]. Used by the scheduled cron job.
- *
- * Errors per-station are caught and logged so one bad station doesn't
- * abort the entire batch.
  */
 async function runForAllStations(periodStart, periodEnd) {
   const stationIds = await repo.getAllStationIds();
@@ -104,10 +109,15 @@ async function runForAllStations(periodStart, periodEnd) {
 // ── On-demand trigger (used by the HTTP endpoint) ─────────────────────────────
 
 async function runOnDemand(stationId, lookbackMinutes) {
-  const station = await repo.findReconciliationsByStationId(stationId); // validates station exists implicitly
+  await repo.findReconciliationsByStationId(stationId); // validates station exists implicitly
+  const minutes = lookbackMinutes || 30;
   const now = new Date();
-  const periodStart = new Date(now.getTime() - lookbackMinutes * 60 * 1000);
-  return runForStation(stationId, periodStart, now);
+
+  // Round periodEnd to the current minute boundary so multiple rapid clicks produce the same key
+  const periodEnd = new Date(Math.floor(now.getTime() / 60000) * 60000);
+  const periodStart = new Date(periodEnd.getTime() - minutes * 60 * 1000);
+
+  return runForStation(stationId, periodStart, periodEnd);
 }
 
 async function getStationReconciliations(stationId) {
@@ -141,7 +151,7 @@ async function resolveReconciliation(id, note, actorId) {
     RETURNING *;
   `;
   const result = await pool.query(query, [actorId, note.trim(), id]);
-  
+
   await pool.query(
     `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata)
      VALUES ($1, 'RECONCILIATION_RESOLVED', 'reconciliations', $2, $3)`,

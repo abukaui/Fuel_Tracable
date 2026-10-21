@@ -66,6 +66,7 @@ export default function StationDetail() {
   useEffect(() => { fetchData(); }, [id]);
 
   const handleRunRecon = async () => {
+    if (reconLoading) return;
     setReconLoading(true); setReconError(''); setReconSuccess('');
     try {
       await apiClient(`/api/stations/${id}/reconciliations/run`, { method: 'POST' });
@@ -149,7 +150,7 @@ export default function StationDetail() {
                 <span>{pct.toFixed(1)}% full</span>
                 <span>of {parseFloat(t.capacity_liters).toLocaleString()} L</span>
               </div>
-              {r && <div style={{ fontSize: '11px', color: 'var(--text-light)', marginTop: '0.5rem' }}>Last: {fmt(r.reading_time)} · {r.source}</div>}
+              {r && <div style={{ fontSize: '11px', color: 'var(--text-light)', marginTop: '0.5rem' }}>Last: {fmt(r.recorded_at || r.reading_time)} · {r.source}</div>}
             </div>
           );
         })}
