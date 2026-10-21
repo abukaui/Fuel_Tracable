@@ -9,6 +9,16 @@ async function createReconciliation(data) {
         tank_volume_delta, verified_dispense_volume, variance_liters,
         stock_out_flag, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (station_id, period_start, period_end)
+     DO UPDATE SET
+       tank_volume_delta = EXCLUDED.tank_volume_delta,
+       verified_dispense_volume = EXCLUDED.verified_dispense_volume,
+       variance_liters = EXCLUDED.variance_liters,
+       stock_out_flag = EXCLUDED.stock_out_flag,
+       status = CASE
+         WHEN reconciliations.status = 'RESOLVED' THEN 'RESOLVED'
+         ELSE EXCLUDED.status
+       END
      RETURNING *`,
     [
       data.stationId,
@@ -52,49 +62,120 @@ async function getAllStationIds() {
 }
 
 /**
- * For each tank at a station, finds the earliest and latest ATG reading
- * within [periodStart, periodEnd] and returns the sum of
- * (latest - earliest) across all tanks.
+ * Calculates tank outflow and signed volume delta for a station across a window [periodStart, periodEnd].
  *
- * Returns { delta: number | null, hasData: boolean }
- *   delta    – net volume change (negative = fuel left the tanks)
- *   hasData  – false if no readings exist in the period for any tank
+ * Rules:
+ * - Only genuine volume DROPS between consecutive readings are summed into tank_outflow.
+ * - Volume increases (refills) are ignored (not treated as theft).
+ * - The latest reading just before periodStart is included as the first comparison baseline.
+ * - Requires at least 2 readings in the window for a complete reconciliation.
  */
-async function getTankVolumeDelta(stationId, periodStart, periodEnd) {
-  const { rows } = await pool.query(
-    `SELECT
-       t.id AS tank_id,
-       MIN(a.volume_liters) FILTER (WHERE a.recorded_at = earliest.min_ts) AS earliest_vol,
-       MAX(a.volume_liters) FILTER (WHERE a.recorded_at = latest.max_ts)   AS latest_vol
-     FROM tanks t
-     JOIN atg_readings a ON a.tank_id = t.id
-     JOIN (
-       SELECT tank_id, MIN(recorded_at) AS min_ts
-       FROM atg_readings
-       WHERE recorded_at BETWEEN $2 AND $3
-       GROUP BY tank_id
-     ) earliest ON earliest.tank_id = t.id
-     JOIN (
-       SELECT tank_id, MAX(recorded_at) AS max_ts
-       FROM atg_readings
-       WHERE recorded_at BETWEEN $2 AND $3
-       GROUP BY tank_id
-     ) latest ON latest.tank_id = t.id
-     WHERE t.station_id = $1
-       AND a.recorded_at BETWEEN $2 AND $3
-     GROUP BY t.id, earliest.min_ts, latest.max_ts`,
-    [stationId, periodStart, periodEnd]
+async function getTankReconciliationData(stationId, periodStart, periodEnd) {
+  const { rows: tanks } = await pool.query(
+    `SELECT id FROM tanks WHERE station_id = $1 ORDER BY id`,
+    [stationId]
   );
 
-  if (rows.length === 0) return { delta: null, hasData: false };
-
-  let totalDelta = 0;
-  for (const row of rows) {
-    const earliest = parseFloat(row.earliest_vol) || 0;
-    const latest   = parseFloat(row.latest_vol)   || 0;
-    totalDelta += (latest - earliest);
+  if (tanks.length === 0) {
+    return {
+      hasEnoughReadings: false,
+      tankOutflow: 0,
+      signedDelta: null,
+      minReadingTime: null,
+      maxReadingTime: null,
+    };
   }
-  return { delta: totalDelta, hasData: true };
+
+  let totalWindowReadings = 0;
+  let totalOutflow = 0;
+  let totalSignedDelta = 0;
+  let overallMinTime = null;
+  let overallMaxTime = null;
+
+  for (const tank of tanks) {
+    // 1. Fetch readings inside the window
+    const { rows: windowReadings } = await pool.query(
+      `SELECT volume_liters, recorded_at
+       FROM atg_readings
+       WHERE tank_id = $1
+         AND recorded_at BETWEEN $2 AND $3
+       ORDER BY recorded_at ASC`,
+      [tank.id, periodStart, periodEnd]
+    );
+
+    totalWindowReadings += windowReadings.length;
+
+    // 2. Fetch last reading just BEFORE window start to use as baseline
+    const { rows: preReadings } = await pool.query(
+      `SELECT volume_liters, recorded_at
+       FROM atg_readings
+       WHERE tank_id = $1
+         AND recorded_at < $2
+       ORDER BY recorded_at DESC
+       LIMIT 1`,
+      [tank.id, periodStart]
+    );
+
+    const sequence = preReadings.length > 0
+      ? [preReadings[0], ...windowReadings]
+      : windowReadings;
+
+    if (sequence.length >= 2) {
+      // Calculate drops between consecutive readings
+      for (let i = 0; i < sequence.length - 1; i++) {
+        const vBefore = parseFloat(sequence[i].volume_liters);
+        const vAfter  = parseFloat(sequence[i + 1].volume_liters);
+        const drop = vBefore - vAfter;
+        if (drop > 0) {
+          totalOutflow += drop;
+        }
+      }
+
+      // Signed delta = last reading - first reading used
+      const firstVol = parseFloat(sequence[0].volume_liters);
+      const lastVol  = parseFloat(sequence[sequence.length - 1].volume_liters);
+      totalSignedDelta += (lastVol - firstVol);
+
+      const firstTime = new Date(sequence[0].recorded_at);
+      const lastTime  = new Date(sequence[sequence.length - 1].recorded_at);
+
+      if (!overallMinTime || firstTime < overallMinTime) overallMinTime = firstTime;
+      if (!overallMaxTime || lastTime > overallMaxTime) overallMaxTime = lastTime;
+    }
+  }
+
+  // Need at least 2 readings inside the window across the station
+  if (totalWindowReadings < 2) {
+    return {
+      hasEnoughReadings: false,
+      tankOutflow: 0,
+      signedDelta: null,
+      minReadingTime: null,
+      maxReadingTime: null,
+    };
+  }
+
+  return {
+    hasEnoughReadings: true,
+    tankOutflow: totalOutflow,
+    signedDelta: totalSignedDelta,
+    minReadingTime: overallMinTime || periodStart,
+    maxReadingTime: overallMaxTime || periodEnd,
+  };
+}
+
+/**
+ * Backward compatibility wrapper for getTankVolumeDelta.
+ */
+async function getTankVolumeDelta(stationId, periodStart, periodEnd) {
+  const result = await getTankReconciliationData(stationId, periodStart, periodEnd);
+  return {
+    delta: result.signedDelta,
+    hasData: result.hasEnoughReadings,
+    outflow: result.tankOutflow,
+    minReadingTime: result.minReadingTime,
+    maxReadingTime: result.maxReadingTime,
+  };
 }
 
 /**
@@ -118,7 +199,7 @@ module.exports = {
   findReconciliationsByStationId,
   findReconciliationById,
   getAllStationIds,
+  getTankReconciliationData,
   getTankVolumeDelta,
   getVerifiedDispenseVolume,
 };
-

@@ -41,6 +41,7 @@ app.use('/api/fuel-requests', require('./modules/fuel-requests/fuel-requests.rou
 app.use('/api/dispense', require('./modules/dispense/dispense.routes'));
 app.use('/api/ussd', require('./modules/ussd/ussd.routes'));
 app.use('/api/complaints', require('./modules/complaints/complaints.routes'));
+app.use('/api/internal/atg', require('./modules/atg/internalAtg.routes'));
 app.use('/api', require('./modules/admin/admin.routes'));
 
 // ── Global error handler ──────────────────────────────────────────────────────

@@ -40,6 +40,9 @@ const config = {
    * Default: 20 litres.
    */
   reconciliationToleranceLiters: parseFloat(process.env.RECONCILIATION_TOLERANCE_LITERS) || 20,
+
+  /** Whether demo tools like /api/internal/atg/inject-loss are enabled */
+  enableDemoTools: process.env.ENABLE_DEMO_TOOLS === 'true',
 };
 
 // Fail fast if the minimum required variable is missing.
