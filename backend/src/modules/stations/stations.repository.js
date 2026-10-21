@@ -14,7 +14,7 @@ async function createStation({ sid, name, location }) {
 
 async function findStationBySid(sid) {
   const { rows } = await pool.query(
-    `SELECT id, sid, name, location, current_status, created_at
+    `SELECT id, sid, name, location, current_status, status_declared_at, created_at
      FROM stations
      WHERE sid = $1`,
     [sid]
@@ -24,7 +24,7 @@ async function findStationBySid(sid) {
 
 async function findAllStations() {
   const { rows } = await pool.query(
-    `SELECT id, sid, name, location, current_status, created_at
+    `SELECT id, sid, name, location, current_status, status_declared_at, created_at
      FROM stations
      ORDER BY created_at DESC`
   );
@@ -33,7 +33,7 @@ async function findAllStations() {
 
 async function findStationById(id) {
   const { rows } = await pool.query(
-    `SELECT id, sid, name, location, current_status, created_at
+    `SELECT id, sid, name, location, current_status, status_declared_at, created_at
      FROM stations
      WHERE id = $1`,
     [id]
@@ -75,7 +75,7 @@ async function updateStationStatus(id, status) {
 
 async function findStationForOperator(operatorId) {
   const { rows } = await pool.query(
-    `SELECT s.id, s.sid, s.name, s.location, s.current_status, s.created_at
+    `SELECT s.id, s.sid, s.name, s.location, s.current_status, s.status_declared_at, s.created_at
      FROM stations s
      JOIN users u ON u.station_id = s.id
      WHERE u.id = $1`,
