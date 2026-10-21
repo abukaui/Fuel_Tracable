@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import logo from '../assets/logo.png';
 
 export default function Login() {
   const [phone, setPhone] = useState('');
@@ -35,7 +36,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">🔥</div>
+          <img src={logo} alt="Petroleum and Energy Authority Logo" className="login-logo-img" />
           <div className="login-logo-title">FuelGuard</div>
           <div className="login-logo-sub">Fuel Traceablity & Control System</div>
         </div>

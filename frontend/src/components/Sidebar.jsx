@@ -1,6 +1,7 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
+import logo from '../assets/logo.png';
 
 const icons = {
   dashboard: (
@@ -80,7 +81,7 @@ export default function Sidebar({ role, userName }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🔥</div>
+        <img src={logo} alt="Petroleum and Energy Authority Logo" className="sidebar-logo-img" />
         <div className="sidebar-logo-text">
           <div className="sidebar-logo-title">FuelGuard</div>
           <div className="sidebar-logo-sub">{dashboardLabel}</div>

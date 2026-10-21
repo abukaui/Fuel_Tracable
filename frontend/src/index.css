@@ -70,15 +70,17 @@ body {
   gap: 0.75rem;
 }
 
-.sidebar-logo-icon {
-  width: 36px; height: 36px;
-  background: var(--primary);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
+.sidebar-logo-icon,
+.sidebar-logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #ffffff;
+  padding: 2px;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  display: block;
 }
 
 .sidebar-logo-text { flex: 1; }
@@ -471,13 +473,17 @@ tbody td {
   text-align: center;
   margin-bottom: 2rem;
 }
-.login-logo-icon {
-  width: 52px; height: 52px;
-  background: linear-gradient(135deg, var(--primary), #1d4ed8);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px;
+.login-logo-icon,
+.login-logo-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #ffffff;
+  padding: 3px;
   margin: 0 auto 0.75rem;
+  display: block;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 .login-logo-title { font-size: 1.4rem; font-weight: 700; }
 .login-logo-sub { color: var(--text-muted); font-size: 13px; }
