@@ -117,12 +117,16 @@ export default function Sidebar({ role, userName }) {
       </nav>
 
       <div className="sidebar-bottom">
-        <div className="nav-item" style={{ color: '#94a3b8', cursor: 'default' }}>
+        <NavLink
+          to="/profile"
+          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          style={{ color: '#94a3b8', textDecoration: 'none' }}
+        >
           {icons.profile}
           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {userName || 'User'}
+            {userName || 'My Profile'}
           </span>
-        </div>
+        </NavLink>
         <button className="nav-item" onClick={handleLogout} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
           {icons.logout}
           <span style={{ flex: 1 }}>Logout</span>

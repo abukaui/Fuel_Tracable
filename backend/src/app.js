@@ -32,6 +32,8 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/v1/me', require('./modules/profile/profile.routes'));
+app.use('/api/me', require('./modules/profile/profile.routes'));
 app.use('/api/stations', stationRoutes);
 app.use('/api/tanks', atgRoutes);
 app.use('/api/reconciliations', require('./modules/reconciliation/reconciliation.routes'));

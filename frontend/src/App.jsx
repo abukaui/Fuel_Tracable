@@ -7,6 +7,7 @@ import ReconciliationDetail from './pages/ReconciliationDetail';
 import Complaints from './pages/Complaints';
 import AuditLogs from './pages/AuditLogs';
 import Reconciliations from './pages/Reconciliations';
+import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -29,8 +30,9 @@ export default function App() {
         <Route path="/operator" element={<OperatorDashboard />} />
       </Route>
 
-      {/* Catch-all */}
+      {/* All authenticated users */}
       <Route element={<ProtectedRoute />}>
+        <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
     </Routes>

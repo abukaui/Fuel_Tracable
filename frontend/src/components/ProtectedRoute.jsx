@@ -64,13 +64,20 @@ export default function ProtectedRoute({ allowedRoles }) {
 function AuthenticatedLayout({ role }) {
   const [user, setUser] = useState({ name: '', role });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
-    apiClient('/api/auth/me')
+    apiClient('/api/v1/me')
       .then(data => {
-        if (data.user) setUser({ name: data.user.full_name, role: data.user.role });
+        if (data) {
+          setUser({ name: data.full_name, role: data.role });
+          if (data.must_change_password && window.location.pathname !== '/profile') {
+            navigate('/profile', { replace: true });
+          }
+        }
       })
       .catch(() => {});
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="app-layout">
