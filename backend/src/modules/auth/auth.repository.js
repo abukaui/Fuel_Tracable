@@ -18,12 +18,16 @@ async function findByPhone(phone) {
   const last9 = digits.slice(-9);
 
   const { rows } = await pool.query(
-    `SELECT id, full_name, phone, password_hash, role, created_at
+    `SELECT id, full_name, phone, password_hash, role, token_version, must_change_password, created_at
      FROM users
      WHERE phone LIKE $1`,
     [`%${last9}`],
   );
   return rows[0] ?? null;
+}
+
+async function updateLastLogin(id) {
+  await pool.query('UPDATE users SET last_login_at = now() WHERE id = $1', [id]);
 }
 
 /**
@@ -53,4 +57,4 @@ async function createUser({ fullName, phone, passwordHash, role }) {
   return rows[0];
 }
 
-module.exports = { findByPhone, findById, createUser };
+module.exports = { findByPhone, findById, createUser, updateLastLogin };

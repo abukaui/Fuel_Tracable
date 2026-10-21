@@ -52,8 +52,11 @@ async function login({ phone, password }) {
   const match = await bcrypt.compare(password, user.password_hash);
   if (!match) throw httpError(GENERIC, 401);
 
+  // Record last login timestamp
+  await repo.updateLastLogin(user.id);
+
   const token = jwt.sign(
-    { userId: user.id, role: user.role },
+    { userId: user.id, role: user.role, tokenVersion: user.token_version || 1 },
     config.jwtSecret,
     { expiresIn: '24h' },
   );
