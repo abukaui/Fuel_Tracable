@@ -31,6 +31,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use('/api/public', require('./modules/public/public.routes'));
 app.use('/api/auth', authRoutes);
 app.use('/api/v1/me', require('./modules/profile/profile.routes'));
 app.use('/api/me', require('./modules/profile/profile.routes'));
