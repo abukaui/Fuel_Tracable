@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import logo from '../assets/logo.png';
 
@@ -34,11 +34,82 @@ export default function Login() {
 
   return (
     <div className="login-page">
+      {/* Top Left Global Back to Home */}
+      <Link
+        to="/"
+        style={{
+          position: 'absolute',
+          top: '1.5rem',
+          left: '1.5rem',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          color: '#e2e8f0',
+          textDecoration: 'none',
+          fontSize: '13px',
+          fontWeight: 600,
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(8px)',
+          padding: '0.45rem 0.95rem',
+          borderRadius: '99px',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          transition: 'all 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
+          e.currentTarget.style.transform = 'translateX(-2px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+          e.currentTarget.style.transform = 'translateX(0)';
+        }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Back to Home</span>
+      </Link>
+
       <div className="login-card">
+        {/* Back to Home Button */}
+        <Link
+          to="/"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#0284c7',
+            textDecoration: 'none',
+            marginBottom: '1rem',
+            padding: '0.35rem 0.65rem',
+            borderRadius: '8px',
+            background: 'rgba(2, 132, 199, 0.08)',
+            border: '1px solid rgba(2, 132, 199, 0.2)',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(2, 132, 199, 0.16)';
+            e.currentTarget.style.transform = 'translateX(-2px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(2, 132, 199, 0.08)';
+            e.currentTarget.style.transform = 'translateX(0)';
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>Back to Home</span>
+        </Link>
+
         <div className="login-logo">
           <img src={logo} alt="Petroleum and Energy Authority Logo" className="login-logo-img" />
           <div className="login-logo-title">FuelGuard</div>
-          <div className="login-logo-sub">Fuel Traceablity & Control System</div>
+          <div className="login-logo-sub">Fuel Traceability &amp; Control System</div>
         </div>
 
         <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.25rem', color: 'var(--text)' }}>
