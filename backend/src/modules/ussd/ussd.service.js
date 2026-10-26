@@ -1,12 +1,12 @@
 'use strict';
 
-const authRepo           = require('../auth/auth.repository');
-const vehiclesService    = require('../vehicles/vehicles.service');
+const authRepo = require('../auth/auth.repository');
+const vehiclesService = require('../vehicles/vehicles.service');
 const fuelRequestsService = require('../fuel-requests/fuel-requests.service');
-const fuelRequestsRepo   = require('../fuel-requests/fuel-requests.repository');
-const stationsService    = require('../stations/stations.service');   // Day 6/7 reuse
-const dispenseService    = require('../dispense/dispense.service');   // Day 11 reuse
-const pool               = require('../../db/pool');
+const fuelRequestsRepo = require('../fuel-requests/fuel-requests.repository');
+const stationsService = require('../stations/stations.service');   // Day 6/7 reuse
+const dispenseService = require('../dispense/dispense.service');   // Day 11 reuse
+const pool = require('../../db/pool');
 
 /**
  * Handle USSD callback
@@ -20,7 +20,7 @@ async function handleCallback({ sessionId, phoneNumber, text }) {
   const user = await authRepo.findByPhone(phoneNumber);
 
   if (!user) {
-    return `END Unregistered phone number.\nPlease register through the web app first.`;
+    return `END Unregistered phone number.\nPlease register through the web app or USSD (1) first.`;
   }
 
   if (user.role === 'DRIVER') {
@@ -52,13 +52,13 @@ async function handleDriverMenu(user, parts, level) {
     if (level === 2) return `CON Select Vehicle Type:\n1. PRIVATE\n2. TAXI\n3. COMMERCIAL`;
     if (level === 3) return `CON Select Gas Type:\n1. PETROL\n2. DIESEL`;
     if (level === 4) {
-      const plateNumber   = parts[1];
+      const plateNumber = parts[1];
       const typeSelection = parts[2];
       const fuelSelection = parts[3];
 
       const vehicleType = typeSelection === '2' ? 'TAXI'
-                        : typeSelection === '3' ? 'COMMERCIAL'
-                        : 'PRIVATE';
+        : typeSelection === '3' ? 'COMMERCIAL'
+          : 'PRIVATE';
       const fuelType = fuelSelection === '2' ? 'DIESEL' : 'PETROL';
 
       try {
@@ -75,8 +75,8 @@ async function handleDriverMenu(user, parts, level) {
     if (level === 2) return `CON Enter Station ID (SID):`;
     if (level === 3) return `CON Enter requested Liters:`;
     if (level === 4) {
-      const plateNumber     = parts[1];
-      const sid             = parts[2];
+      const plateNumber = parts[1];
+      const sid = parts[2];
       const requestedLiters = parseFloat(parts[3]);
 
       if (isNaN(requestedLiters) || requestedLiters <= 0) {
@@ -131,7 +131,7 @@ async function handleDriverMenu(user, parts, level) {
         }
         const dailyLimit = parseFloat(vehicle.daily_limit_liters);
         const usedLiters = await fuelRequestsRepo.getUsedLitersToday(vehicleId);
-        const remaining  = Math.max(0, dailyLimit - usedLiters);
+        const remaining = Math.max(0, dailyLimit - usedLiters);
         return `END You have ${remaining.toFixed(2)} liters remaining today.`;
       } catch (err) {
         return `END Error: ${err.message}`;
@@ -194,7 +194,7 @@ async function handleOperatorMenu(user, parts, level) {
       return `CON Select new status:\n1. OPEN\n2. CLOSED\n3. OUT_OF_STOCK`;
     }
     if (level === 3) {
-      const sid          = parts[1];
+      const sid = parts[1];
       const statusChoice = parts[2];
 
       const statusMap = { '1': 'OPEN', '2': 'CLOSED', '3': 'OUT_OF_STOCK' };
@@ -240,8 +240,8 @@ async function handleOperatorMenu(user, parts, level) {
 
     // Level 4: show vehicle summary + quota, ask for confirmation
     if (level === 4) {
-      const otpCode         = parts[1];
-      const plateNumber     = parts[2];
+      const otpCode = parts[1];
+      const plateNumber = parts[2];
       const litersDispensed = parseFloat(parts[3]);
 
       if (isNaN(litersDispensed) || litersDispensed <= 0) {
@@ -254,7 +254,7 @@ async function handleOperatorMenu(user, parts, level) {
 
         // Plate mismatch check at preview stage too
         const submittedPlate = plateNumber.trim().toUpperCase();
-        const vehiclePlate   = matchedRequest.plate_number.trim().toUpperCase();
+        const vehiclePlate = matchedRequest.plate_number.trim().toUpperCase();
         if (submittedPlate !== vehiclePlate) {
           return `END Plate number does not match. Please verify the vehicle.`;
         }
@@ -276,7 +276,7 @@ After quota: ${remaining}L left
       } catch (err) {
         const codeMessages = {
           WRONG_CODE: 'Code not recognised. Please check and try again.',
-          EXPIRED:    'Code has expired. Ask the driver to request a new code.',
+          EXPIRED: 'Code has expired. Ask the driver to request a new code.',
         };
         return `END ${codeMessages[err.code] || err.message}`;
       }
@@ -287,8 +287,8 @@ After quota: ${remaining}L left
       const confirm = parts[4];
       if (confirm !== '1') return `END Dispense cancelled.`;
 
-      const otpCode         = parts[1];
-      const plateNumber     = parts[2];
+      const otpCode = parts[1];
+      const plateNumber = parts[2];
       const litersDispensed = parseFloat(parts[3]);
 
       try {
@@ -300,9 +300,9 @@ After quota: ${remaining}L left
         return `END Dispense authorized.\n${litersDispensed}L dispensed successfully.`;
       } catch (err) {
         const codeMessages = {
-          WRONG_CODE:     'Code not recognised. Please check and try again.',
-          ALREADY_USED:   'Code already used. Ask the driver to request a new code.',
-          EXPIRED:        'Code has expired. Ask the driver to request a new code.',
+          WRONG_CODE: 'Code not recognised. Please check and try again.',
+          ALREADY_USED: 'Code already used. Ask the driver to request a new code.',
+          EXPIRED: 'Code has expired. Ask the driver to request a new code.',
           PLATE_MISMATCH: 'Plate number does not match. Please verify the vehicle.',
           OVER_DISPENSED: 'Liters entered exceed the approved amount.',
         };

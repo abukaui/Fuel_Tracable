@@ -8,6 +8,7 @@
 
 process.env.NODE_ENV = 'test';
 process.env.RECONCILIATION_TOLERANCE_LITERS = '20';
+
 process.env.ENABLE_DEMO_TOOLS = 'true';
 
 const testPool = require('./helpers/testPool');
@@ -126,9 +127,9 @@ describe('Reconciliation & Simulator Logic', () => {
 
     const now = Date.now();
     const w1Start = new Date(now - 60 * 60000);
-    const w1End   = new Date(now - 30 * 60000);
+    const w1End = new Date(now - 30 * 60000);
     const w2Start = new Date(now - 30 * 60000);
-    const w2End   = new Date(now);
+    const w2End = new Date(now);
 
     // Window 1 readings: 6000L throughout (idle)
     await seedAtgReading(testPool, tankId, 6000, new Date(w1Start.getTime() + 1000));
@@ -153,7 +154,7 @@ describe('Reconciliation & Simulator Logic', () => {
   // ── Test 2: Verified 12L dispense -> tank drops 12L -> status OK ────────────
   test('Verified 12 L dispense -> tank drops 12 L -> status OK', async () => {
     const stationId = await seedStation(testPool);
-    const tankId    = await seedTank(testPool, stationId);
+    const tankId = await seedTank(testPool, stationId);
     const vehicleId = await seedVehicle(testPool, adminId);
 
     const periodStart = new Date(Date.now() - 30 * 60000);
@@ -180,7 +181,7 @@ describe('Reconciliation & Simulator Logic', () => {
   // ── Test 3: Refill (tank goes up) -> status OK, never flagged ───────────────
   test('Refill (tank goes up) -> status OK, never flagged', async () => {
     const stationId = await seedStation(testPool);
-    const tankId    = await seedTank(testPool, stationId);
+    const tankId = await seedTank(testPool, stationId);
 
     const periodStart = new Date(Date.now() - 30 * 60000);
     const periodEnd = new Date();
@@ -201,7 +202,7 @@ describe('Reconciliation & Simulator Logic', () => {
   // ── Test 4: inject-loss of 200L with no sale -> FLAGGED, variance ~200L ───────
   test('inject-loss of 200 L with no sale -> FLAGGED, variance about 200 L', async () => {
     const stationId = await seedStation(testPool);
-    const tankId    = await seedTank(testPool, stationId);
+    const tankId = await seedTank(testPool, stationId);
 
     const periodStart = new Date(Date.now() - 30 * 60000);
     const periodEnd = new Date();
@@ -224,7 +225,7 @@ describe('Reconciliation & Simulator Logic', () => {
   // ── Test 5: Fewer than 2 readings in the window -> INCOMPLETE ──────────────
   test('Fewer than 2 readings in the window -> INCOMPLETE', async () => {
     const stationId = await seedStation(testPool);
-    const tankId    = await seedTank(testPool, stationId);
+    const tankId = await seedTank(testPool, stationId);
 
     const periodStart = new Date(Date.now() - 30 * 60000);
     const periodEnd = new Date();
@@ -248,7 +249,7 @@ describe('Reconciliation & Simulator Logic', () => {
   // ── Test 6: Running the same window twice -> still one row ──────────────────
   test('Running the same window twice -> still one row (unique index / UPSERT)', async () => {
     const stationId = await seedStation(testPool);
-    const tankId    = await seedTank(testPool, stationId);
+    const tankId = await seedTank(testPool, stationId);
 
     const periodStart = new Date(Date.now() - 30 * 60000);
     const periodEnd = new Date();

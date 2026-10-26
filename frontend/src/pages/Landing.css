@@ -1,0 +1,1183 @@
+/* ── FuelGuard Landing Page Styles: Petroleum Theme ── */
+
+:root {
+  --petrol-darkest: #051421;
+  --petrol-dark: #081e31;
+  --petrol-navy: #0e2a43;
+  --petrol-deep: #0f3b5c;
+  --petrol-primary: #0284c7;
+  --petrol-teal: #0891b2;
+  --petrol-cyan: #06b6d4;
+  --petrol-light-bg: #f3f7fa;
+  --petrol-card-border: #e2eaf0;
+  --petrol-flame-amber: #f59e0b;
+  --petrol-flame-orange: #d97706;
+  --petrol-emerald: #10b981;
+}
+
+.landing-root {
+  margin-top: 20px;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Sticky Navbar ── */
+.landing-header {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(14, 42, 67, 0.08);
+  transition: all 0.2s ease;
+}
+
+
+.landing-nav-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0.85rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.landing-logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: #ffffff;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(8, 30, 49, 0.15);
+  border: 1.5px solid rgba(2, 132, 199, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.landing-brand:hover .landing-logo-img {
+  transform: rotate(5deg) scale(1.05);
+}
+
+.landing-brand-text {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.landing-brand-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--petrol-dark);
+  letter-spacing: -0.02em;
+}
+
+.landing-brand-divider {
+  width: 1px;
+  height: 28px;
+  background: #cbd5e1;
+}
+
+.landing-brand-tagline {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.landing-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2.2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.landing-nav-link {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #475569;
+  text-decoration: none;
+  position: relative;
+  padding: 0.35rem 0;
+  transition: color 0.15s ease;
+}
+
+.landing-nav-link:hover {
+  color: var(--petrol-primary);
+}
+
+.landing-nav-link.active {
+  color: var(--petrol-primary);
+  font-weight: 600;
+}
+
+.landing-nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: var(--petrol-primary);
+  border-radius: 99px;
+}
+
+.landing-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.landing-notification-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #475569;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.landing-notification-btn:hover {
+  background: #f1f5f9;
+  color: var(--petrol-dark);
+}
+
+.landing-notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+.landing-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: white;
+  padding: 0.6rem 1.35rem;
+  border-radius: 99px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  transition: all 0.2s ease;
+}
+
+.landing-login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+}
+
+/* ── Hero Section ── */
+.landing-hero {
+  position: relative;
+  padding: 3.5rem 2rem 4.5rem;
+  background: radial-gradient(circle at 10% 20%, rgba(2, 132, 199, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(8, 145, 178, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #ffffff 0%, #f4f8fa 100%);
+  border-bottom: 1px solid rgba(14, 42, 67, 0.06);
+}
+
+.landing-hero-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+
+.landing-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.landing-badge-gov {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.4rem 1rem;
+  border-radius: 99px;
+  border: 1px solid #bae6fd;
+}
+
+.landing-hero-title {
+  font-size: 3.4rem;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: var(--petrol-dark);
+}
+
+.landing-hero-title-gradient {
+  background: linear-gradient(135deg, #0284c7 0%, #0891b2 50%, #0e7490 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: block;
+}
+
+.landing-hero-description {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #475569;
+  max-width: 540px;
+}
+
+.landing-hero-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.landing-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: white;
+  padding: 0.85rem 1.8rem;
+  border-radius: 99px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.landing-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.45);
+}
+
+.landing-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  padding: 0.82rem 1.6rem;
+  border-radius: 99px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.landing-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: var(--petrol-dark);
+  transform: translateY(-1px);
+}
+
+/* 4 Value Pillars */
+.landing-pillars-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.landing-pillar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.landing-pillar-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.landing-pillar-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.3;
+}
+
+/* ── Hero Right Card (Visual Scene) ── */
+.landing-hero-visual {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  border-radius: 24px;
+  overflow: visible;
+}
+
+.landing-hero-scene-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(8, 30, 49, 0.25),
+    0 0 0 1px rgba(8, 30, 49, 0.08);
+}
+
+.landing-hero-scene-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s ease;
+}
+
+.landing-hero-scene-wrapper:hover .landing-hero-scene-img {
+  transform: scale(1.02);
+}
+
+/* Floating Overlay Widgets */
+.landing-overlay-card {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 16px 32px -8px rgba(8, 30, 49, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.landing-overlay-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px -8px rgba(8, 30, 49, 0.32);
+}
+
+.overlay-status {
+  top: 18px;
+  right: 140px;
+  padding: 0.75rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 230px;
+}
+
+.overlay-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.overlay-status-icon {
+  width: 32px;
+  height: 32px;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.overlay-status-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.overlay-status-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.overlay-status-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.overlay-status-badge {
+  display: inline-block;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  text-align: center;
+}
+
+.overlay-status-badge.out-of-stock {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.overlay-station-pills {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.overlay-station-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.overlay-station-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.overlay-station-pill.active {
+  background: #0284c7;
+  color: white;
+  border-color: #0284c7;
+}
+
+/* Middle Left: Tank Level */
+.overlay-tank {
+  top: 150px;
+  left: -28px;
+  padding: 0.95rem 1.25rem;
+  min-width: 215px;
+}
+
+.overlay-tank-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.overlay-tank-left-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.overlay-tank-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #cffafe;
+  color: #0891b2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-tank-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.overlay-fuel-type-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.overlay-tank-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.overlay-tank-val {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--petrol-dark);
+}
+
+.overlay-tank-temp {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.overlay-tank-liters {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-bottom: 0.45rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.overlay-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 0.35rem;
+}
+
+.overlay-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  border-radius: 99px;
+  transition: width 0.6s ease;
+}
+
+.overlay-sensor-note {
+  font-size: 0.65rem;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+/* Middle Right: Today's Dispense */
+.overlay-dispense {
+  top: 155px;
+  right: -24px;
+  padding: 0.95rem 1.25rem;
+  min-width: 200px;
+}
+
+.overlay-dispense-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.overlay-dispense-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-dispense-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.overlay-dispense-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.overlay-dispense-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--petrol-dark);
+}
+
+.overlay-dispense-trend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.overlay-dispense-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.35rem;
+  line-height: 1.35;
+}
+
+.overlay-dispense-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-dispense-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.overlay-dispense-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.overlay-dispense-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--petrol-dark);
+}
+
+.overlay-dispense-trend {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+/* ── Key Features Section ── */
+.landing-features-section {
+  padding: 5rem 2rem 5.5rem;
+  background: #ffffff;
+}
+
+.landing-features-container {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.landing-features-tag {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--petrol-primary);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.landing-features-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--petrol-dark);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.landing-features-subtitle {
+  font-size: 1.05rem;
+  color: #64748b;
+  max-width: 720px;
+  margin-bottom: 3.5rem;
+}
+
+.landing-features-layout {
+  display: grid;
+  grid-template-columns: 1.85fr 1fr;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+/* 2x3 Grid of feature cards */
+.landing-features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.35rem;
+}
+
+.landing-feature-card {
+  background: #ffffff;
+  border: 1.5px solid #edf2f7;
+  border-radius: 16px;
+  padding: 1.45rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
+  box-shadow: 0 2px 6px rgba(8, 30, 49, 0.03);
+  transition: all 0.2s ease;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.landing-feature-card:hover {
+  border-color: #bae6fd;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -6px rgba(2, 132, 199, 0.12);
+}
+
+.landing-feature-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.landing-feature-card-content {
+  flex: 1;
+}
+
+.landing-feature-card-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--petrol-dark);
+  margin-bottom: 0.35rem;
+}
+
+.landing-feature-card-desc {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.landing-feature-card-arrow {
+  color: #94a3b8;
+  transition: transform 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.landing-feature-card:hover .landing-feature-card-arrow {
+  color: var(--petrol-primary);
+  transform: translateX(4px);
+}
+
+/* Right Government Card */
+.landing-gov-card {
+  background: linear-gradient(180deg, #f0fdf4 0%, #e0f2fe 100%);
+  border: 1.5px solid #d1fae5;
+  border-radius: 20px;
+  padding: 2.2rem 2rem 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(8, 30, 49, 0.05);
+  transition: transform 0.2s ease;
+}
+
+.landing-gov-card:hover {
+  transform: translateY(-2px);
+}
+
+.landing-gov-tag {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #047857;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.3rem 0.75rem;
+  border-radius: 99px;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.landing-gov-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--petrol-dark);
+  line-height: 1.25;
+  margin-bottom: 0.85rem;
+}
+
+.landing-gov-desc {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #334155;
+  margin-bottom: 1.25rem;
+}
+
+.landing-gov-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--petrol-primary);
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+  transition: gap 0.2s ease;
+}
+
+.landing-gov-link:hover {
+  gap: 0.65rem;
+  color: #0369a1;
+}
+
+.landing-gov-img-wrapper {
+  margin: 0 -2rem;
+  margin-top: auto;
+  height: 220px;
+  overflow: hidden;
+  position: relative;
+}
+
+.landing-gov-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Bottom Stats Bar ── */
+.landing-stats-bar {
+  background: linear-gradient(180deg, #071728 0%, #05121f 100%);
+  border-top: 1px solid rgba(2, 132, 199, 0.25);
+  color: white;
+  padding: 3rem 2rem;
+}
+
+.landing-stats-container {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.landing-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
+.landing-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.landing-stat-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(2, 132, 199, 0.15);
+  border: 1px solid rgba(2, 132, 199, 0.35);
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.landing-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-stat-number {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.landing-stat-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.landing-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  margin-top: 0.3rem;
+  align-self: flex-start;
+  font-weight: 600;
+}
+
+.landing-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseRadar 2s infinite;
+}
+
+@keyframes pulseRadar {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+/* ── Live DB Stations Preview / Drawer Section ── */
+.landing-db-drawer-section {
+  padding: 3rem 2rem 4rem;
+  background: #f1f5f9;
+  border-top: 1px solid #e2e8f0;
+}
+
+.landing-db-drawer-container {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.landing-db-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.landing-db-title-group h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--petrol-dark);
+}
+
+.landing-db-title-group p {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.landing-stations-table-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.landing-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.landing-table th {
+  background: #f8fafc;
+  padding: 0.85rem 1.25rem;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.landing-table td {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.landing-table tr:last-child td {
+  border-bottom: none;
+}
+
+.status-badge-open {
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  display: inline-block;
+}
+
+.status-badge-out {
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  display: inline-block;
+}
+
+/* ── Interactive Modal ── */
+.landing-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 20, 33, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.landing-modal-box {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4);
+  padding: 2.25rem;
+  position: relative;
+  border: 1px solid #e2e8f0;
+}
+
+.landing-modal-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: #f1f5f9;
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 1.1rem;
+  transition: all 0.15s ease;
+}
+
+.landing-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Responsive Queries ── */
+@media (max-width: 1024px) {
+  .landing-hero-container {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .landing-hero-title {
+    font-size: 2.8rem;
+  }
+
+  .landing-features-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-nav-links {
+    display: none;
+  }
+
+  .landing-hero-title {
+    font-size: 2.2rem;
+  }
+
+  .landing-features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-pillars-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .landing-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overlay-status {
+    right: 12px;
+    top: 12px;
+  }
+
+  .overlay-tank {
+    left: 12px;
+    top: 90px;
+  }
+
+  .overlay-dispense {
+    right: 12px;
+    top: 220px;
+  }
+}

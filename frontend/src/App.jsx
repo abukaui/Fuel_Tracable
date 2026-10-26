@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import GovDashboard from './pages/GovDashboard';
 import OperatorDashboard from './pages/OperatorDashboard';
@@ -13,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
 
       {/* Gov / Admin routes */}
@@ -33,8 +35,9 @@ export default function App() {
       {/* All authenticated users */}
       <Route element={<ProtectedRoute />}>
         <Route path="/profile" element={<Profile />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
